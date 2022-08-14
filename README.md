@@ -15,7 +15,7 @@
 # make sure you've install neovim, or
 brew install neovim
 pip install pynvim
-pip install python-lsp-server
+pip install 'python-lsp-server[all]'
 
 ```
 
@@ -27,6 +27,6 @@ chmod u+x nvim.appimage
 ./nvim.appimage
 
 pip install pynvim
-pip install python-lsp-server
+pip install 'python-lsp-server[all]'
 
 ```
