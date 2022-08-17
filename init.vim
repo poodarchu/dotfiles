@@ -2,11 +2,7 @@
 "" Vim-Plug core
 "*****************************************************************************
 let vimplug_exists=expand('~/.config/nvim/autoload/plug.vim')
-if has('win32')&&!has('win64')
-  let curl_exists=expand('C:\Windows\Sysnative\curl.exe')
-else
-  let curl_exists=expand('curl')
-endif
+let curl_exists=expand('curl')
 
 let g:vim_bootstrap_langs = "c,python"
 let g:vim_bootstrap_editor = "nvim"				" nvim or vim
@@ -35,18 +31,15 @@ call plug#begin(expand('~/.config/nvim/plugged'))
 Plug 'scrooloose/nerdtree'
 Plug 'jistr/vim-nerdtree-tabs'
 Plug 'scrooloose/nerdcommenter'
-Plug 'jiangmiao/auto-pairs'
 Plug 'sbdchd/neoformat'
-Plug 'neomake/neomake'
 Plug 'tpope/vim-fugitive'
-Plug 'terryma/vim-multiple-cursors'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'crispgm/nvim-tabline'
 Plug 'airblade/vim-gitgutter'
 Plug 'vim-scripts/grep.vim'
 Plug 'vim-scripts/CSApprox'
-Plug 'Raimondi/delimitMate'
-Plug 'majutsushi/tagbar'
+Plug 'jiangmiao/auto-pairs'
 Plug 'dense-analysis/ale'
 Plug 'Yggdroot/indentLine'
 Plug 'editor-bootstrap/vim-bootstrap-updater'
@@ -60,10 +53,12 @@ else
   Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --bin' }
   Plug 'junegunn/fzf.vim'
 endif
+
 let g:make = 'gmake'
 if exists('make')
         let g:make = 'make'
 endif
+
 Plug 'Shougo/vimproc.vim', {'do': g:make}
 
 "" Vim-Session
@@ -175,9 +170,9 @@ colorscheme gruvbox
 set wildmenu
 
 " mouse support
-set mouse=a
+"set mouse=a
+"set mousemodel=popup
 
-set mousemodel=popup
 set t_Co=256
 set guioptions=egmrti
 set gfn=Monospace\ 10
@@ -322,7 +317,6 @@ let g:airline_theme = 'powerlineish'
 let g:airline#extensions#branch#enabled = 1
 let g:airline#extensions#ale#enabled = 1
 let g:airline#extensions#tabline#enabled = 1
-let g:airline#extensions#tagbar#enabled = 1
 let g:airline_skip_empty_sections = 1
 
 "*****************************************************************************
@@ -380,13 +374,18 @@ if !exists('*s:setupWrapping')
   function s:setupWrapping()
     set wrap
     set wm=2
-    set textwidth=119
+    set textwidth=120
   endfunction
 endif
 
 "*****************************************************************************
 "" Autocmd Rules
 "*****************************************************************************
+
+augroup auto-remove-trailing-spaces-py
+    autocmd BufWritePre *.py :%s/\s\+$//e
+augroup END
+
 "" The PC is fast enough, do syntax highlight syncing from start unless 200 lines
 augroup vimrc-sync-fromstart
   autocmd!
@@ -485,10 +484,6 @@ let g:UltiSnipsEditSplit="vertical"
 " ale
 let g:ale_linters = {}
 
-" Tagbar
-nmap <silent> <F4> :TagbarToggle<CR>
-let g:tagbar_autofocus = 1
-
 " Disable visualbell
 set noerrorbells visualbell t_vb=
 if has('autocmd')
@@ -555,8 +550,7 @@ autocmd FileType cpp setlocal tabstop=4 shiftwidth=4 expandtab
 " vim-python
 augroup vimrc-python
   autocmd!
-  autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=8 colorcolumn=119
-      \ formatoptions+=croq softtabstop=4
+  autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=4 colorcolumn=120 formatoptions+=cq softtabstop=4
       \ cinwords=if,elif,else,for,while,try,except,finally,def,class,with
 augroup END
 
@@ -626,4 +620,3 @@ else
   let g:airline_symbols.readonly = ''
   let g:airline_symbols.linenr = ''
 endif
-
