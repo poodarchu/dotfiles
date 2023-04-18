@@ -12,21 +12,24 @@
 ### Mac
 
 ```shell
-# make sure you've install neovim, or
-brew install neovim
-pip install pynvim
-pip install 'python-lsp-server[all]'
-
+curl -LO https://github.com/neovim/neovim/releases/download/v0.7.2/nvim-macos.tar.gz
+tar -zxf nvim-macos.tar.gz
+# add nvim to system PATH
+# make alias to vi / vim
 ```
 
 ### Linux
 ```shell
 
-curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
+curl -LO https://github.com/neovim/neovim/releases/download/v0.7.2/nvim.appimage
 chmod u+x nvim.appimage
-./nvim.appimage
+# add nvim.appimage to system PATH
+# make alias to vi / vim
+```
 
+## Post-steps
+
+```shell
 pip install pynvim
 pip install 'python-lsp-server[all]'
-
 ```
