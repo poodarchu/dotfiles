@@ -33,3 +33,10 @@ chmod u+x nvim.appimage
 pip install pynvim
 pip install 'python-lsp-server[all]'
 ```
+
+### Copilot
+```shell 
+git clone https://github.com/github/copilot.vim.git ~/.config/nvim/pack/github/start/copilot.vim
+# Start Neovim and invoke
+:Copilot setup
+```
