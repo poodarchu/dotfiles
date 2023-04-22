@@ -36,7 +36,12 @@ pip install 'python-lsp-server[all]'
 
 ### Copilot
 ```shell 
+# Install node.js
+wget https://nodejs.org/dist/v18.16.0/node-v18.16.0-linux-x64.tar.xz
+
+# Install coplit
 git clone https://github.com/github/copilot.vim.git ~/.config/nvim/pack/github/start/copilot.vim
+
 # Start Neovim and invoke
 :Copilot setup
 ```
