@@ -1,13 +1,6 @@
-# Neovim Configuration
+# AI-powered nvim IDE
 
-## Setup
-
-1. move `init.vim` into directory `~/.config/nvim`
-2. exec `vi` in command line, and VimPlug should automatically start installing process, or
-   ```shell
-   sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
-   ```
+## Nvim preparation
 
 ### Mac
 
@@ -26,6 +19,16 @@ chmod u+x nvim.appimage
 # add nvim.appimage to system PATH
 # make alias to vi / vim
 ```
+
+## Setup
+
+1. move `init.vim` into directory `~/.config/nvim`
+2. exec `vi` in command line, and VimPlug should automatically start installing process, or
+   ```shell
+   sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+   ```
+3. optionally, you can exec `:PlugInstall` / `:PlugUpdate` to check whether all dependencies have been loaded as expected.
 
 ## Post-steps
 
