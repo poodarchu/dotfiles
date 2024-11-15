@@ -53,6 +53,14 @@ virtenv_prompt() {
 	echo "${YS_THEME_VIRTUALENV_PROMPT_PREFIX}${VIRTUAL_ENV:t}${YS_THEME_VIRTUALENV_PROMPT_SUFFIX}"
 }
 
+# Conda environment info
+local conda_info='$(conda_info_prompt)'
+conda_info_prompt() {
+    if [[ -n "$CONDA_DEFAULT_ENV" ]]; then
+        echo -n " %{$fg[magenta]%}($CONDA_DEFAULT_ENV)%{$reset_color%}"
+    fi
+}
+
 local exit_code="%(?,,C:%{$fg[red]%}%?%{$reset_color%})"
 
 # Prompt format:
@@ -64,15 +72,10 @@ local exit_code="%(?,,C:%{$fg[red]%}%?%{$reset_color%})"
 #
 # % ys @ ys-mbp in ~/.oh-my-zsh on git:master x [21:47:42] C:0
 # $
-PROMPT="%{$terminfo[bold]$fg[blue]%}#%{$reset_color%} \
-%(#,%{$bg[yellow]%}%{$fg[black]%}%n%{$reset_color%},%{$fg[cyan]%}%n) \
-%{$reset_color%}@ \
-%{$fg[green]%}%m \
-%{$reset_color%}in \
-%{$terminfo[bold]$fg[yellow]%}%~%{$reset_color%}\
-${hg_info}\
-${git_info}\
-${svn_info}\
-${venv_info} \
-[%*] $exit_code\
-%{$terminfo[bold]$fg[red]%}$ %{$reset_color%}"
+PROMPT="${conda_info} \
+%{$fg[blue]%}[%*]%{$reset_color%} \
+%(#,%{$bg[yellow]%}%{$fg[black]%}%n%{$reset_color%},%{$fg[cyan]%}%n)@%{$fg[green]%}$(scutil --get LocalHostName)%{$reset_color%}:\
+%{$fg[yellow]%}%~ %{$reset_color%}\
+${hg_info:+${hg_info} }${git_info}${svn_info}${venv_info} \
+${exit_code:+ }$exit_code
+%{$fg[red]%}\$%{$reset_color%} "
