@@ -74,7 +74,7 @@ local exit_code="%(?,,C:%{$fg[red]%}%?%{$reset_color%})"
 # $
 PROMPT="${conda_info} \
 %{$fg[blue]%}[%*]%{$reset_color%} \
-%(#,%{$bg[yellow]%}%{$fg[black]%}%n%{$reset_color%},%{$fg[cyan]%}%n)@%{$fg[green]%}$(scutil --get LocalHostName)%{$reset_color%}:\
+%(#,%{$bg[yellow]%}%{$fg[black]%}%n%{$reset_color%},%{$fg[cyan]%}%n)@%{$fg[green]%}$(if [[ "$(uname)" == "Darwin" ]]; then scutil --get LocalHostName; else hostname; fi)%{$reset_color%}:\
 %{$fg[yellow]%}%~ %{$reset_color%}\
 ${hg_info:+${hg_info} }${git_info}${svn_info}${venv_info} \
 ${exit_code:+ }$exit_code
