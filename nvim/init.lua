@@ -444,7 +444,7 @@ local plugins = {
     end,
   },
 
-  -- LSP Configuration (exclude Python LSPs entirely)
+  -- LSP Configuration (enhanced with pylsp)
   {
     'neovim/nvim-lspconfig',
     event = { "BufReadPre", "BufNewFile" },
@@ -456,11 +456,41 @@ local plugins = {
     },
   },
 
-  -- LSP installer
+  -- LSP installer (install pylsp + others)
   {
     'williamboman/mason.nvim',
     cmd = "Mason",
-    opts = {},
+    config = function()
+      require('mason').setup({
+        ui = {
+          border = "rounded"
+        }
+      })
+
+      -- Auto-install essential packages
+      local mason_registry = require("mason-registry")
+      local packages_to_install = {
+        "clangd",                    -- C/C++ LSP
+        "lua-language-server",       -- Lua LSP (lua_ls)
+        "python-lsp-server",         -- Python LSP (pylsp) - for completion & formatting
+      }
+
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "MasonInstallComplete",
+        callback = function()
+          vim.notify("Essential LSP packages installed", vim.log.levels.INFO)
+        end,
+      })
+
+      -- Install packages if not already installed
+      for _, package_name in ipairs(packages_to_install) do
+        local package = mason_registry.get_package(package_name)
+        if not package:is_installed() then
+          vim.notify("Installing " .. package_name, vim.log.levels.INFO)
+          package:install()
+        end
+      end
+    end,
   },
 
   -- LSP progress notifications
@@ -527,14 +557,30 @@ local plugins = {
     end,
   },
 
-  -- Blink.cmp - Modern completion engine (CORRECTED CONFIG)
+  -- Blink.cmp - Modern completion engine (Enhanced with proper keymaps)
   {
     'saghen/blink.cmp',
     lazy = false,
     dependencies = 'rafamadriz/friendly-snippets',
     version = 'v0.*',
     opts = {
-      keymap = { preset = 'default' },
+      keymap = {
+        preset = 'default',
+        ['<CR>'] = { 'accept', 'fallback' },
+        ['<Tab>'] = { 'select_next', 'snippet_forward', 'fallback' },
+        ['<S-Tab>'] = { 'select_prev', 'snippet_backward', 'fallback' },
+        ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
+        ['<C-e>'] = { 'hide', 'fallback' },
+        ['<C-y>'] = { 'accept', 'fallback' },
+
+        ['<Up>'] = { 'select_prev', 'fallback' },
+        ['<Down>'] = { 'select_next', 'fallback' },
+        ['<C-p>'] = { 'select_prev', 'fallback' },
+        ['<C-n>'] = { 'select_next', 'fallback' },
+
+        ['<C-b>'] = { 'scroll_documentation_up', 'fallback' },
+        ['<C-f>'] = { 'scroll_documentation_down', 'fallback' },
+      },
 
       appearance = {
         use_nvim_cmp_as_default = true,
@@ -546,57 +592,43 @@ local plugins = {
       },
 
       completion = {
+        accept = {
+          auto_brackets = {
+            enabled = true,
+          },
+        },
         documentation = {
           auto_show = true,
           auto_show_delay_ms = 200,
-        }
+        },
+        ghost_text = {
+          enabled = true,
+        },
       }
     },
     opts_extend = { "sources.default" }
   },
 
-  -- Enhanced linting for Python import detection
+  -- Enhanced linting (using flake8)
   {
     'mfussenegger/nvim-lint',
     event = { "BufReadPre", "BufNewFile" },
-
     config = function()
       local lint = require('lint')
 
-      -- Configure linters with line length settings (120 chars) - check if they exist first
-      if lint.linters.pyflakes then
-        lint.linters.pyflakes.args = {}
-      end
-
-      if lint.linters.pycodestyle then
-        lint.linters.pycodestyle.args = { '--max-line-length=120' }
-      end
-
-      -- Or create custom linter configs if they don't exist
-      lint.linters.pyflakes = lint.linters.pyflakes or {
-        cmd = 'pyflakes',
-        stdin = true,
-        args = {},
-        ignore_exitcode = true,
-        parser = require('lint.parser').from_pattern(
-          [[:(%d+):(%d*):? (.*)]],
-          {"lnum", "col", "message"},
-          nil,
-          {["source"] = "pyflakes"}
-        ),
+      -- Configure linters for Python
+      lint.linters_by_ft = {
+        python = { 'flake8' },  -- Use flake8 for style linting
       }
 
-      lint.linters.pycodestyle = lint.linters.pycodestyle or {
-        cmd = 'pycodestyle',
-        stdin = true,
-        args = { '--max-line-length=120', '-' },
-        parser = require('lint.parser').from_pattern(
-          [[:(%d+):(%d+): (%w+) (.*)]],
-          {"lnum", "col", "code", "message"},
-          nil,
-          {["source"] = "pycodestyle"}
-        ),
-      }
+      -- Configure flake8 settings
+      if lint.linters.flake8 then
+        lint.linters.flake8.args = {
+          '--max-line-length=120',
+          '--extend-ignore=E203,W503,E266',
+          '--per-file-ignores=__init__.py:F401',
+        }
+      end
 
       -- Debounced linting function
       local lint_debounce_table = {}
@@ -624,10 +656,15 @@ local plugins = {
         group = lint_augroup,
         callback = debounced_lint,
       })
+
+      -- Manual lint command
+      vim.api.nvim_create_user_command("Lint", function()
+        require("lint").try_lint()
+      end, { desc = "Run linter on current file" })
     end,
   },
 
-  -- Formatting
+  -- Formatting (minimal setup)
   {
     'stevearc/conform.nvim',
     event = { "BufWritePre" },
@@ -643,27 +680,13 @@ local plugins = {
     opts = {
       formatters_by_ft = {
         lua = { "stylua" },
-        python = { "isort", "black" },
         c = { "clang_format" },
         cpp = { "clang_format" },
-        javascript = { "prettier" },
-        typescript = { "prettier" },
-        json = { "prettier" },
-        yaml = { "prettier" },
-        markdown = { "prettier" },
+        -- Python formatting handled by pylsp
       },
       formatters = {
-        black = {
-          prepend_args = { "--line-length", "120" },
-        },
-        isort = {
-          prepend_args = { "--profile", "black", "--line-length", "120" },
-        },
         stylua = {
           prepend_args = { "--column-width", "120" },
-        },
-        prettier = {
-          prepend_args = { "--print-width", "120" },
         },
         clang_format = {
           prepend_args = { "--style={ColumnLimit: 120}" },
@@ -727,19 +750,55 @@ local plugins = {
         { "<leader>b", group = "buffer/breakpoint" },
         { "<leader>t", group = "toggle/terminal" },
         { "<leader>d", group = "debug/detect" },
+        { "<leader>x", group = "diagnostics" },
       },
     },
   },
 
-  -- Better diagnostics
+  -- Better diagnostics (Enhanced for showing full error messages)
   {
     "folke/trouble.nvim",
-    cmd = { "TroubleToggle", "Trouble" },
+    cmd = { "Trouble" },
     keys = {
-      { "<leader>xx", "<cmd>TroubleToggle document_diagnostics<cr>", desc = "Document Diagnostics" },
-      { "<leader>xX", "<cmd>TroubleToggle workspace_diagnostics<cr>", desc = "Workspace Diagnostics" },
+      { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Document Diagnostics" },
+      { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
+      { "<leader>xl", "<cmd>Trouble loclist toggle<cr>", desc = "Location List" },
+      { "<leader>xq", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix List" },
     },
-    opts = {},
+    config = function()
+      require("trouble").setup({
+        modes = {
+          diagnostics = {
+            auto_open = false,
+            auto_close = false,
+            auto_preview = true,
+            auto_refresh = true,
+          },
+        },
+      })
+
+      -- Auto-open trouble when there are diagnostics
+      vim.api.nvim_create_autocmd("DiagnosticChanged", {
+        callback = function()
+          local diagnostics = vim.diagnostic.get(0)
+          if #diagnostics > 0 then
+            -- Auto show trouble for errors
+            local has_error = false
+            for _, diag in ipairs(diagnostics) do
+              if diag.severity == vim.diagnostic.severity.ERROR then
+                has_error = true
+                break
+              end
+            end
+            if has_error then
+              vim.defer_fn(function()
+                vim.cmd("Trouble diagnostics open")
+              end, 100)
+            end
+          end
+        end,
+      })
+    end,
   },
 
   -- Terminal
@@ -819,7 +878,8 @@ local plugins = {
         diagnostics = "nvim_lsp",
         offsets = {
           { filetype = "neo-tree", text = "Neo-tree", highlight = "Directory" },
-          { filetype = "oil", text = "Oil", highlight = "Directory" }
+          { filetype = "oil", text = "Oil", highlight = "Directory" },
+          { filetype = "Trouble", text = "Diagnostics", highlight = "Directory" }
         },
       },
     },
@@ -844,8 +904,24 @@ require("lazy").setup(plugins, {
         "gzip", "matchit", "matchparen", "netrwPlugin", "tarPlugin", "tohtml", "tutor", "zipPlugin",
       },
     },
+    cache = {
+      enabled = true,
+    },
+    reset_packpath = true,
   },
-  checker = { enabled = true, notify = false },
+  checker = {
+    enabled = true,
+    notify = false,
+    frequency = 3600,
+  },
+  change_detection = {
+    enabled = true,
+    notify = false,
+  },
+  install = {
+    missing = true,
+    colorscheme = { "gruvbox-material" },
+  },
 })
 
 -- ===========================
@@ -970,7 +1046,7 @@ autocmd("VimLeavePre", {
 })
 
 -- ===========================
--- LSP SETUP (NO PYTHON LSPs)
+-- LSP SETUP (PYLSP + OTHERS)
 -- ===========================
 
 -- Setup neodev first
@@ -987,52 +1063,75 @@ local function get_capabilities()
   return require('blink.cmp').get_lsp_capabilities()
 end
 
--- Enhanced on_attach function
+-- Enhanced on_attach function (single hover binding)
 local on_attach = function(client, bufnr)
-  -- Explicitly disable any Python LSPs that might attach
-  if client.name == "pyright" or client.name == "pylsp" or client.name == "python-lsp-server" or client.name == "jedi_language_server" then
-    vim.notify("Stopping Python LSP: " .. client.name, vim.log.levels.WARN)
-    client.stop()
-    return
-  end
-
   local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
-  -- LSP mappings
+  -- LSP mappings (only one hover binding - K)
   vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, bufopts)
   vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
-  vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)
+  vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)  -- Single hover binding
   vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
   vim.keymap.set('n', '<leader>cr', vim.lsp.buf.rename, bufopts)
   vim.keymap.set({'n', 'v'}, '<leader>ca', vim.lsp.buf.code_action, bufopts)
   vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts)
 
-  -- Enhanced hover with custom styling
-  vim.keymap.set('n', '<leader>K', function()
-    vim.lsp.buf.hover()
-  end, vim.tbl_extend('force', bufopts, { desc = "Show documentation" }))
-
   -- Diagnostic mappings
   vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, bufopts)
   vim.keymap.set('n', ']d', vim.diagnostic.goto_next, bufopts)
+
+  -- Enhanced diagnostic display mappings
+  vim.keymap.set('n', '<leader>do', vim.diagnostic.open_float, bufopts)
+  vim.keymap.set('n', '<leader>dl', vim.diagnostic.setloclist, bufopts)
 end
 
--- Setup mason-lspconfig (no Python LSP servers)
+-- Setup mason-lspconfig (pylsp + others)
 require('mason-lspconfig').setup({
   ensure_installed = {
-    'clangd', 'lua_ls', 'rust_analyzer', 'ts_ls'
+    'clangd',                -- C/C++
+    'lua_ls',               -- Lua (lua-language-server)
+    'pylsp',                -- Python LSP - for completion & formatting
   },
   handlers = {
     function(server_name)
-      -- Explicitly skip all Python LSP servers
-      if server_name == "pyright" or server_name == "pylsp" or server_name == "python-lsp-server" or server_name == "jedi_language_server" then
-        vim.notify("Skipping Python LSP: " .. server_name, vim.log.levels.INFO)
-        return
-      end
-
       lspconfig[server_name].setup({
         capabilities = get_capabilities(),
         on_attach = on_attach,
+      })
+    end,
+
+    -- Configure pylsp for completion, formatting, and other features
+    ["pylsp"] = function()
+      lspconfig.pylsp.setup({
+        capabilities = get_capabilities(),
+        on_attach = on_attach,
+        settings = {
+          pylsp = {
+            plugins = {
+              pycodestyle = { enabled = true },
+              pyflakes = { enabled = true },
+              pylint = { enabled = true },
+
+              -- Enable formatting and completion
+              autopep8 = { enabled = true },
+              yapf = { enabled = false },
+              black = { enabled = false },
+              isort = { enabled = true },
+
+              -- Jedi features for completion
+              jedi_completion = { enabled = true },
+              jedi_definition = { enabled = true },
+              jedi_hover = { enabled = true },      -- Keep hover for pylsp
+              jedi_references = { enabled = true },
+              jedi_signature_help = { enabled = true },
+              jedi_symbols = { enabled = true },
+
+              -- Disable other completion engines
+              rope_completion = { enabled = false },
+              rope_autoimport = { enabled = false },
+            },
+          },
+        },
       })
     end,
 
@@ -1058,53 +1157,43 @@ require('mason-lspconfig').setup({
         },
       })
     end,
+
+    ["clangd"] = function()
+      lspconfig.clangd.setup({
+        capabilities = get_capabilities(),
+        on_attach = on_attach,
+        cmd = {"clangd", "--offset-encoding=utf-16"},
+      })
+    end,
   },
 })
 
 -- ===========================
--- DIAGNOSTICS (SHOW BOTH VIRTUAL TEXT AND LOCLIST)
+-- ENHANCED DIAGNOSTICS DISPLAY
 -- ===========================
 
--- Map client names to readable sources
-local source_mapping = {
-  ["null-ls"] = "null-ls",
-  pycodestyle = "pycodestyle",
-  pyflakes = "pyflakes",
-  clangd = "clangd",
-  lua_ls = "Lua LSP",
-  rust_analyzer = "Rust Analyzer",
-  ts_ls = "TypeScript LSP",
-}
-
--- Enhanced diagnostic configuration (show both virtual text and loclist)
+-- Enhanced diagnostic configuration with both virtual text and floating windows
 vim.diagnostic.config({
   virtual_text = {
-    source = false, -- We'll handle source display manually
+    source = true,
     prefix = "●",
-    severity = { min = vim.diagnostic.severity.INFO }, -- Show info, warn, error
+    severity = { min = vim.diagnostic.severity.HINT },
     format = function(diagnostic)
-      -- Get the source name
       local source = diagnostic.source or ""
-      -- Map internal names to readable names
-      source = source_mapping[source] or source
-
-      -- Limit message length
+      local code = diagnostic.code and (" [" .. diagnostic.code .. "]") or ""
       local message = diagnostic.message
-      if #message > 50 then
-        message = message:sub(1, 47) .. "..."
+
+      -- Truncate long messages for virtual text
+      if #message > 60 then
+        message = message:sub(1, 57) .. "..."
       end
 
-      -- Format: [source]: message
-      if source ~= "" then
-        return string.format("  [%s]: %s", source, message)
-      else
-        return "  " .. message
-      end
+      return string.format("%s%s: %s", source, code, message)
     end,
     spacing = 2,
   },
   signs = {
-    severity = { min = vim.diagnostic.severity.INFO },
+    severity = { min = vim.diagnostic.severity.HINT },
   },
   underline = {
     severity = { min = vim.diagnostic.severity.WARN },
@@ -1115,69 +1204,39 @@ vim.diagnostic.config({
     border = "rounded",
     source = "always",
     header = "",
-    prefix = function(diagnostic, i, total)
-      local source = diagnostic.source or ""
-      source = source_mapping[source] or source
-      if source ~= "" then
-        return string.format("[%s]: ", source), "DiagnosticFloatingPrefix"
-      else
-        return "", ""
-      end
-    end,
-    focusable = false,
+    focusable = true,
     style = "minimal",
-    max_width = 100,
-    max_height = 20,
+    max_width = 120,
+    max_height = 30,
+    wrap = true,
   },
+})
+
+-- Auto-show diagnostic float on cursor hold
+vim.api.nvim_create_autocmd("CursorHold", {
+  group = augroup("DiagnosticFloat", { clear = true }),
+  callback = function()
+    local opts = {
+      focusable = false,
+      close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
+      border = 'rounded',
+      source = 'always',
+      prefix = ' ',
+      scope = 'cursor',
+    }
+    vim.diagnostic.open_float(nil, opts)
+  end,
 })
 
 -- Custom hover window configuration
 vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
   border = "rounded",
-  max_width = 80,
-  max_height = 20,
-  focusable = false,
+  max_width = 100,
+  max_height = 30,
+  focusable = true,
   style = "minimal",
   title = "Documentation",
 })
-
--- Filter out unwanted diagnostics and avoid duplicates
-local function filter_diagnostics_enhanced(diagnostics)
-  local filtered = {}
-  local seen = {}
-
-  for _, diagnostic in ipairs(diagnostics) do
-    -- Skip any Python LSP diagnostics that might slip through
-    if diagnostic.source == "Pyright" or diagnostic.source == "pyright" then
-      goto continue
-    end
-
-    local key = string.format("%d:%d:%s", diagnostic.lnum, diagnostic.col, diagnostic.message)
-    if not seen[key] then
-      seen[key] = true
-      table.insert(filtered, diagnostic)
-    end
-
-    ::continue::
-  end
-
-  return filtered
-end
-
--- Override diagnostic set function
-local original_set = vim.diagnostic.set
-vim.diagnostic.set = function(namespace, bufnr, diagnostics, opts)
-  diagnostics = filter_diagnostics_enhanced(diagnostics)
-
-  table.sort(diagnostics, function(a, b)
-    if a.severity ~= b.severity then
-      return a.severity < b.severity
-    end
-    return a.lnum < b.lnum
-  end)
-
-  original_set(namespace, bufnr, diagnostics, opts)
-end
 
 -- ===========================
 -- KEY MAPPINGS
@@ -1277,12 +1336,35 @@ end
 keymap('n', '<leader>b', toggle_breakpoint_above, { desc = "Toggle breakpoint" })
 keymap('n', '<F9>', toggle_breakpoint_above, { desc = "Toggle breakpoint" })
 
+-- ===========================
+-- ADDITIONAL KEY MAPPINGS
+-- ===========================
+
+-- File path operations
+keymap("n", "<leader>.", function()
+  vim.cmd("lcd %:p:h")
+  vim.cmd("pwd")
+end, { desc = "Change to file directory" })
+
+keymap("n", "<leader>oe", ":e <C-R>=expand('%:p:h') . '/' <cr>", { desc = "Edit file in current dir" })
+keymap("n", "<leader>ot", ":tabe <C-R>=expand('%:p:h') . '/' <cr>", { desc = "Open file in new tab" })
+
+-- Enhanced search navigation (auto-center)
+keymap("n", "n", "nzzzv", { desc = "Next search result (centered)" })
+keymap("n", "N", "Nzzzv", { desc = "Previous search result (centered)" })
+
+-- Better visual mode indenting (keep selection)
+keymap("v", "<", "<gv", { desc = "Indent left and keep selection" })
+keymap("v", ">", ">gv", { desc = "Indent right and keep selection" })
+
 -- Python environment detection shortcut
 keymap("n", "<leader>dp", "<cmd>DetectPythonVenv<cr>", { desc = "Detect Python Environment" })
 
--- Diagnostic navigation and display
-keymap("n", "<leader>dl", "<cmd>lua vim.diagnostic.setloclist()<cr>", { desc = "Show diagnostics in location list" })
-keymap("n", "<leader>do", "<cmd>lua vim.diagnostic.open_float()<cr>", { desc = "Show diagnostic float" })
+-- Enhanced diagnostic mappings
+keymap("n", "<leader>xd", vim.diagnostic.open_float, { desc = "Show diagnostic details" })
+keymap("n", "<leader>xn", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+keymap("n", "<leader>xp", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
+keymap("n", "<leader>xa", vim.diagnostic.setloclist, { desc = "Add diagnostics to location list" })
 
 -- Terminal mappings
 keymap("t", "<esc><esc>", "<c-\\><c-n>", { desc = "Enter Normal Mode" })
@@ -1311,17 +1393,3 @@ keymap("n", "<leader>qq", function()
     vim.cmd("qa")
   end
 end, { desc = "Quit all" })
-
--- Commands to manage Python LSPs manually
-vim.api.nvim_create_user_command("RemovePyrightFromMason", function()
-  vim.notify("Please open Mason (:Mason) and manually uninstall pyright, pylsp, and python-lsp-server", vim.log.levels.INFO)
-  vim.cmd("Mason")
-end, { desc = "Open Mason to remove Python LSPs" })
-
--- Final notification
-vim.api.nvim_create_autocmd("User", {
-  pattern = "VeryLazy",
-  callback = function()
-    vim.notify(" Neovim configuration loaded successfully!")
-  end,
-})
