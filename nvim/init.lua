@@ -31,7 +31,7 @@ local plugins = {
   -- Core functionality
   'tpope/vim-sensible',
 
-  -- File explorer
+  -- File explorer (enhanced for directory navigation)
   {
     'nvim-neo-tree/neo-tree.nvim',
     branch = "v3.x",
@@ -49,12 +49,101 @@ local plugins = {
       close_if_last_window = true,
       enable_git_status = true,
       enable_diagnostics = true,
-      window = { position = "left", width = 35 },
+      default_component_configs = {
+        file_size = {
+          enabled = true,
+          required_width = 64,
+        },
+        type = {
+          enabled = true,
+          required_width = 122,
+        },
+        last_modified = {
+          enabled = true,
+          required_width = 88,
+        },
+      },
+      window = { 
+        position = "left", 
+        width = 35,
+        mappings = {
+          ["<space>"] = false, -- disable space until we figure out which-key
+          ["[g"] = "prev_git_modified",
+          ["]g"] = "next_git_modified",
+        }
+      },
       filesystem = {
         follow_current_file = { enabled = true },
         use_libuv_file_watcher = true,
+        hijack_netrw_behavior = "open_current",
+        bind_to_cwd = false,
       },
     },
+  },
+
+  -- Oil.nvim for directory navigation like file editing
+  {
+    'stevearc/oil.nvim',
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      require("oil").setup({
+        default_file_explorer = true,
+        columns = {
+          "icon",
+          "permissions",
+          "size",
+          "mtime",
+        },
+        view_options = {
+          show_hidden = false,
+          is_hidden_file = function(name, bufnr)
+            return vim.startswith(name, ".")
+          end,
+          is_always_hidden = function(name, bufnr)
+            return false
+          end,
+        },
+        float = {
+          padding = 2,
+          max_width = 0,
+          max_height = 0,
+          border = "rounded",
+          win_options = {
+            winblend = 0,
+          },
+        },
+        keymaps = {
+          ["g?"] = "actions.show_help",
+          ["<CR>"] = "actions.select",
+          ["<C-s>"] = "actions.select_vsplit",
+          ["<C-h>"] = "actions.select_split",
+          ["<C-t>"] = "actions.select_tab",
+          ["<C-p>"] = "actions.preview",
+          ["<C-c>"] = "actions.close",
+          ["<C-l>"] = "actions.refresh",
+          ["-"] = "actions.parent",
+          ["_"] = "actions.open_cwd",
+          ["`"] = "actions.cd",
+          ["~"] = "actions.tcd",
+          ["gs"] = "actions.change_sort",
+          ["gx"] = "actions.open_external",
+          ["g."] = "actions.toggle_hidden",
+          ["g\\"] = "actions.toggle_trash",
+        },
+      })
+      
+      -- Auto command to replace netrw with oil
+      vim.api.nvim_create_autocmd("BufWinEnter", {
+        desc = "Open oil when opening a directory",
+        pattern = "*",
+        callback = function()
+          if vim.fn.isdirectory(vim.fn.expand("%")) == 1 then
+            vim.cmd("bd")
+            vim.cmd("Oil " .. vim.fn.expand("%"))
+          end
+        end,
+      })
+    end,
   },
 
   -- Git integration
@@ -82,7 +171,7 @@ local plugins = {
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     opts = {
       options = {
-        theme = 'gruvbox-material',
+        theme = 'gruvbox',
         globalstatus = true,
       },
       sections = {
@@ -96,15 +185,36 @@ local plugins = {
     },
   },
 
-  -- Colorscheme
+  -- Colorscheme (replaced with gruvbox.nvim)
   {
-    'sainnhe/gruvbox-material',
+    "ellisonleao/gruvbox.nvim",
     priority = 1000,
     config = function()
-      vim.g.gruvbox_material_background = 'medium'
-      vim.g.gruvbox_material_better_performance = 1
-      vim.g.gruvbox_material_enable_italic = 1
-      vim.cmd.colorscheme('gruvbox-material')
+      require("gruvbox").setup({
+        terminal_colors = true,
+        undercurl = true,
+        underline = true,
+        bold = true,
+        italic = {
+          strings = true,
+          emphasis = true,
+          comments = true,
+          operators = false,
+          folds = true,
+        },
+        strikethrough = true,
+        invert_selection = false,
+        invert_signs = false,
+        invert_tabline = false,
+        invert_intend_guides = false,
+        inverse = true,
+        contrast = "medium", -- can be "hard", "soft" or empty string
+        palette_overrides = {},
+        overrides = {},
+        dim_inactive = false,
+        transparent_mode = false,
+      })
+      vim.cmd.colorscheme("gruvbox")
     end,
   },
 
@@ -134,7 +244,7 @@ local plugins = {
     },
   },
 
-  -- Fuzzy finder
+  -- Fuzzy finder (with find command fallback)
   {
     'nvim-telescope/telescope.nvim',
     tag = '0.1.6',
@@ -153,6 +263,18 @@ local plugins = {
     },
     config = function()
       local telescope = require('telescope')
+      
+      -- Function to determine the best find command available
+      local function get_find_command()
+        if vim.fn.executable('rg') == 1 then
+          return { "rg", "--files", "--hidden", "--glob", "!**/.git/*" }
+        elseif vim.fn.executable('find') == 1 then
+          return { "find", ".", "-type", "f" }
+        else
+          return nil
+        end
+      end
+      
       telescope.setup({
         defaults = {
           prompt_prefix = "   ",
@@ -169,7 +291,7 @@ local plugins = {
         pickers = {
           find_files = {
             hidden = true,
-            find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+            find_command = get_find_command(),
           },
         },
       })
@@ -178,26 +300,48 @@ local plugins = {
     end,
   },
 
-  -- Session management
+  -- Session management (with auto-save disabled to prevent E37 errors)
   {
     'folke/persistence.nvim',
     event = "BufReadPre",
-    opts = {},
+    opts = {
+      options = { "buffers", "curdir", "tabpages", "winsize", "help", "globals", "skiprtp", "folds" },
+      pre_save = nil,
+      save_empty = false,
+    },
     keys = {
       { "<leader>qs", function() require("persistence").load() end, desc = "Restore Session" },
       { "<leader>ql", function() require("persistence").load({ last = true }) end, desc = "Restore Last Session" },
     },
   },
 
-  -- Commenting
+  -- Commenting (enhanced configuration)
   {
     'numToStr/Comment.nvim',
     keys = {
-      { "gc", mode = { "n", "v" } },
-      { "gb", mode = { "n", "v" } },
-      { "<leader>/", mode = { "n", "v" } },
+      { "<leader>c", mode = { "n", "v" }, desc = "Toggle comment" },
     },
-    opts = {},
+    config = function()
+      require('Comment').setup({
+        toggler = {
+          line = '<leader>cc',
+          block = '<leader>bc',
+        },
+        opleader = {
+          line = '<leader>c',
+          block = '<leader>b',
+        },
+        extra = {
+          above = '<leader>cO',
+          below = '<leader>co',
+          eol = '<leader>cA',
+        },
+        mappings = {
+          basic = true,
+          extra = true,
+        },
+      })
+    end,
   },
 
   -- Dashboard
@@ -247,6 +391,64 @@ local plugins = {
   {
     'j-hui/fidget.nvim',
     opts = {},
+  },
+
+  -- Simple Python environment detection (without fd dependency)
+  {
+    'nvim-lua/plenary.nvim',
+    config = function()
+      -- Simple virtual environment detection function
+      local function detect_python_venv()
+        local venv_paths = {
+          os.getenv("VIRTUAL_ENV"),
+          ".venv",
+          "venv",
+          ".env",
+          "env"
+        }
+        
+        for _, path in ipairs(venv_paths) do
+          if path and vim.fn.isdirectory(path) == 1 then
+            local python_path = path .. "/bin/python"
+            if vim.fn.has("win32") == 1 then
+              python_path = path .. "\\Scripts\\python.exe"
+            end
+            
+            if vim.fn.executable(python_path) == 1 then
+              vim.g.python3_host_prog = python_path
+              vim.notify("Python virtual environment detected: " .. path, vim.log.levels.INFO)
+              return python_path
+            end
+          end
+        end
+        
+        -- Fallback to system python
+        local system_python = vim.fn.exepath("python3") or vim.fn.exepath("python")
+        if system_python then
+          vim.g.python3_host_prog = system_python
+          return system_python
+        end
+        
+        return nil
+      end
+      
+      -- Auto-detect Python environment on startup
+      vim.api.nvim_create_autocmd("VimEnter", {
+        callback = function()
+          detect_python_venv()
+        end,
+      })
+      
+      -- Command to manually detect Python environment
+      vim.api.nvim_create_user_command("DetectPythonVenv", function()
+        local python = detect_python_venv()
+        if python then
+          vim.notify("Using Python: " .. python, vim.log.levels.INFO)
+        else
+          vim.notify("No Python interpreter found", vim.log.levels.WARN)
+        end
+      end, { desc = "Detect Python virtual environment" })
+    end,
   },
 
   -- Completion
@@ -301,8 +503,27 @@ local plugins = {
         yaml = { "prettier" },
         markdown = { "prettier" },
       },
+      formatters = {
+        black = {
+          prepend_args = { "--line-length", "120" },
+        },
+        isort = {
+          prepend_args = { "--profile", "black", "--line-length", "120" },
+        },
+        stylua = {
+          prepend_args = { "--column-width", "120" },
+        },
+        prettier = {
+          prepend_args = { "--print-width", "120" },
+        },
+        clang_format = {
+          prepend_args = { "--style={ColumnLimit: 120}" },
+        },
+      },
     },
   },
+
+  -- Removed nvim-lint completely to avoid duplication with LSP
 
   -- Treesitter
   {
@@ -351,13 +572,14 @@ local plugins = {
     opts = {
       preset = "modern",
       spec = {
-        { "<leader>c", group = "code" },
+        { "<leader>c", group = "comment" },
         { "<leader>f", group = "file/find" },
         { "<leader>g", group = "git" },
         { "<leader>q", group = "quit/session" },
         { "<leader>w", group = "windows" },
-        { "<leader>b", group = "buffer" },
+        { "<leader>b", group = "buffer/breakpoint" },
         { "<leader>t", group = "toggle/terminal" },
+        { "<leader>d", group = "debug/detect" },
       },
     },
   },
@@ -405,7 +627,8 @@ local plugins = {
       options = {
         diagnostics = "nvim_lsp",
         offsets = {
-          { filetype = "neo-tree", text = "Neo-tree", highlight = "Directory" }
+          { filetype = "neo-tree", text = "Neo-tree", highlight = "Directory" },
+          { filetype = "oil", text = "Oil", highlight = "Directory" }
         },
       },
     },
@@ -438,6 +661,7 @@ opt.swapfile = false
 opt.undofile = true
 opt.updatetime = 250
 opt.timeoutlen = 300
+opt.confirm = true  -- Confirm to save changes before exiting modified buffer
 
 -- Indentation
 opt.tabstop = 4
@@ -458,7 +682,7 @@ opt.cursorline = true
 opt.signcolumn = 'yes'
 opt.wrap = false
 opt.scrolloff = 8
-opt.colorcolumn = '120'
+opt.colorcolumn = '120'  -- Set global line width to 120
 opt.termguicolors = true
 opt.mouse = 'a'
 opt.clipboard = 'unnamedplus'
@@ -468,6 +692,10 @@ opt.laststatus = 3
 
 -- Completion
 opt.completeopt = { 'menu', 'menuone', 'noselect' }
+
+-- Line width settings
+opt.textwidth = 120
+opt.formatoptions:append('t')
 
 -- ===========================
 -- AUTOCOMMANDS
@@ -524,6 +752,23 @@ autocmd("FileType", {
   end,
 })
 
+-- Set textwidth for Python files to 120
+autocmd("FileType", {
+  group = augroup("PythonTextWidth", { clear = true }),
+  pattern = "python",
+  callback = function()
+    vim.bo.textwidth = 120
+  end,
+})
+
+-- Prevent session save on VimLeave to avoid E37 errors
+autocmd("VimLeavePre", {
+  group = augroup("PreventSessionSave", { clear = true }),
+  callback = function()
+    vim.o.sessionoptions = "blank,curdir,folds,help,tabpages,winsize,terminal"
+  end,
+})
+
 -- ===========================
 -- LSP SETUP
 -- ===========================
@@ -551,14 +796,22 @@ local on_attach = function(client, bufnr)
   vim.keymap.set({'n', 'v'}, '<leader>ca', vim.lsp.buf.code_action, bufopts)
   vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts)
 
+  -- Enhanced hover with custom styling
+  vim.keymap.set('n', '<leader>K', function()
+    vim.lsp.buf.hover()
+  end, vim.tbl_extend('force', bufopts, { desc = "Show documentation" }))
+
   -- Diagnostic mappings
   vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, bufopts)
   vim.keymap.set('n', ']d', vim.diagnostic.goto_next, bufopts)
 end
 
--- Setup mason-lspconfig
+-- Setup mason-lspconfig with only one primary Python LSP
 require('mason-lspconfig').setup({
-  ensure_installed = { 'pylsp', 'clangd', 'lua_ls', 'rust_analyzer', 'ts_ls' },
+  ensure_installed = { 
+    'pyright', 'clangd', 'lua_ls', 'rust_analyzer', 'ts_ls'
+    -- Removed pylsp to avoid conflicts - using only pyright for Python
+  },
   handlers = {
     function(server_name)
       lspconfig[server_name].setup({
@@ -577,23 +830,53 @@ require('mason-lspconfig').setup({
             diagnostics = { globals = {'vim'} },
             workspace = { checkThirdParty = false },
             telemetry = { enable = false },
+            format = {
+              enable = true,
+              defaultConfig = {
+                column_width = "120",
+                line_separator = "unix",
+                quote_style = "double",
+              }
+            },
           },
         },
       })
     end,
 
-    ["pylsp"] = function()
-      lspconfig.pylsp.setup({
+    -- Use only Pyright for Python to avoid duplications
+    ["pyright"] = function()
+      lspconfig.pyright.setup({
         capabilities = capabilities,
         on_attach = on_attach,
         settings = {
-          pylsp = {
-            plugins = {
-              pycodestyle = { maxLineLength = 120 },
-              black = { enabled = false },
+          python = {
+            analysis = {
+              autoSearchPaths = true,
+              useLibraryCodeForTypes = true,
+              diagnosticMode = "workspace",
+              typeCheckingMode = "basic",
+              autoImportCompletions = true,
+              stubPath = vim.fn.stdpath("data") .. "/lazy/python-type-stubs",
             },
           },
+          pyright = {
+            -- Disable organize imports since we have separate formatters
+            disableOrganizeImports = true,
+          },
         },
+        -- Don't attach to files that are too large
+        root_dir = function(fname)
+          local util = require('lspconfig.util')
+          return util.root_pattern(
+            'pyproject.toml',
+            'setup.py',
+            'setup.cfg',
+            'requirements.txt',
+            'Pipfile',
+            'pyrightconfig.json',
+            '.git'
+          )(fname) or util.path.dirname(fname)
+        end,
       })
     end,
   },
@@ -636,11 +919,11 @@ cmp.setup({
     end, { 'i', 's' }),
   }),
   sources = cmp.config.sources({
-    { name = 'nvim_lsp' },
-    { name = 'luasnip' },
+    { name = 'nvim_lsp', priority = 1000 },
+    { name = 'luasnip', priority = 750 },
   }, {
-    { name = 'buffer' },
-    { name = 'path' },
+    { name = 'buffer', priority = 500 },
+    { name = 'path', priority = 250 },
   }),
   formatting = {
     format = lspkind.cmp_format({
@@ -658,14 +941,95 @@ cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
 -- DIAGNOSTICS
 -- ===========================
 
+-- Enhanced diagnostic configuration to reduce duplicates
 vim.diagnostic.config({
-  virtual_text = true,
-  signs = true,
-  underline = true,
+  virtual_text = {
+    source = false, -- Don't show source in virtual text to reduce clutter
+    prefix = "●",
+    severity = { min = vim.diagnostic.severity.WARN }, -- Only show warnings and errors
+    format = function(diagnostic)
+      -- Limit message length
+      local message = diagnostic.message
+      if #message > 80 then
+        message = message:sub(1, 77) .. "..."
+      end
+      return message
+    end,
+  },
+  signs = {
+    severity = { min = vim.diagnostic.severity.WARN }, -- Only show signs for warnings and errors
+  },
+  underline = {
+    severity = { min = vim.diagnostic.severity.WARN },
+  },
   update_in_insert = false,
   severity_sort = true,
-  float = { border = "rounded" },
+  float = { 
+    border = "rounded",
+    source = "always",
+    header = "",
+    prefix = "",
+    focusable = false,
+    style = "minimal",
+    max_width = 80,
+    max_height = 20,
+  },
 })
+
+-- Custom hover window configuration
+vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, {
+  border = "rounded",
+  max_width = 80,
+  max_height = 20,
+  focusable = false,
+  style = "minimal",
+  title = "Documentation",
+})
+
+-- Advanced duplicate filtering based on message content similarity
+local function filter_diagnostics_advanced(diagnostics)
+  local filtered = {}
+  local seen = {}
+  
+  for _, diagnostic in ipairs(diagnostics) do
+    -- Create a normalized key for deduplication
+    local line = diagnostic.lnum
+    local col = diagnostic.col
+    local message = diagnostic.message:lower()
+    
+    -- Normalize common variations
+    message = message:gsub("'[^']*'", "'*'") -- Replace quoted strings with placeholder
+    message = message:gsub('"[^"]*"', '"*"') -- Replace quoted strings with placeholder
+    message = message:gsub("%s+", " ") -- Normalize whitespace
+    message = message:gsub("^%s*", ""):gsub("%s*$", "") -- Trim
+    
+    local key = string.format("%d:%d:%s", line, col, message)
+    
+    if not seen[key] then
+      seen[key] = true
+      table.insert(filtered, diagnostic)
+    end
+  end
+  
+  return filtered
+end
+
+-- Override diagnostic set function with advanced filtering
+local original_set = vim.diagnostic.set
+vim.diagnostic.set = function(namespace, bufnr, diagnostics, opts)
+  -- Apply advanced filtering
+  diagnostics = filter_diagnostics_advanced(diagnostics)
+  
+  -- Sort by severity and line number
+  table.sort(diagnostics, function(a, b)
+    if a.severity ~= b.severity then
+      return a.severity < b.severity
+    end
+    return a.lnum < b.lnum
+  end)
+  
+  original_set(namespace, bufnr, diagnostics, opts)
+end
 
 -- ===========================
 -- KEY MAPPINGS
@@ -686,8 +1050,12 @@ keymap("n", "<C-l>", "<C-w>l", { desc = "Go to right window" })
 -- Clear search with <esc>
 keymap({ "i", "n" }, "<esc>", "<cmd>noh<cr><esc>", { desc = "Escape and clear hlsearch" })
 
--- Save file
-keymap({ "i", "x", "n", "s" }, "<C-s>", "<cmd>w<cr><esc>", { desc = "Save file" })
+-- Save file with confirmation
+keymap({ "i", "x", "n", "s" }, "<C-s>", function()
+  if vim.bo.modified then
+    vim.cmd("write")
+  end
+end, { desc = "Save file" })
 
 -- Better indenting
 keymap("v", "<", "<gv")
@@ -705,40 +1073,92 @@ keymap("n", "<leader>gs", "<cmd>Git<CR>", { desc = "Git status" })
 keymap("n", "<leader>gc", "<cmd>Git commit --verbose<CR>", { desc = "Git commit" })
 
 -- Buffer management
-keymap("n", "<leader>bd", "<cmd>bdelete<cr>", { desc = "Delete buffer" })
+keymap("n", "<leader>bd", function()
+  local buf = vim.api.nvim_get_current_buf()
+  if vim.bo[buf].modified then
+    local choice = vim.fn.confirm("Buffer has unsaved changes. Save before closing?", "&Yes\n&No\n&Cancel", 3)
+    if choice == 1 then
+      vim.cmd("write")
+      vim.cmd("bdelete")
+    elseif choice == 2 then
+      vim.cmd("bdelete!")
+    end
+  else
+    vim.cmd("bdelete")
+  end
+end, { desc = "Delete buffer" })
+
 keymap("n", "<leader>bb", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
 
--- Python debugging
-local function toggle_pdb_above()
+-- Oil navigation
+keymap("n", "-", "<cmd>Oil<cr>", { desc = "Open parent directory" })
+
+-- Enhanced commenting with <leader>c
+keymap("n", "<leader>c", function()
+  require('Comment.api').toggle.linewise.current()
+end, { desc = "Toggle comment line" })
+
+keymap("x", "<leader>c", function()
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<ESC>', true, false, true), 'nx', false)
+  require('Comment.api').toggle.linewise(vim.fn.visualmode())
+end, { desc = "Toggle comment selection" })
+
+-- Enhanced breakpoint function for <leader>b
+local function toggle_breakpoint_above()
   local current_line = vim.api.nvim_win_get_cursor(0)[1]
   local current_indent = vim.api.nvim_get_current_line():match('^%s*')
-  local pdb_line = current_indent .. "import pdb; pdb.set_trace()  # Breakpoint"
+  local breakpoint_line = current_indent .. "breakpoint()  # Debug breakpoint"
 
   if current_line == 1 then
     local line_content = vim.api.nvim_buf_get_lines(0, 0, 1, false)[1]
-    if vim.trim(line_content) == vim.trim(pdb_line) then
+    if vim.trim(line_content) == vim.trim(breakpoint_line) then
       vim.api.nvim_buf_set_lines(0, 0, 1, false, {})
     else
-      vim.api.nvim_buf_set_lines(0, 0, 0, false, {pdb_line})
+      vim.api.nvim_buf_set_lines(0, 0, 0, false, {breakpoint_line})
     end
   else
     local line_above = vim.api.nvim_buf_get_lines(0, current_line - 2, current_line - 1, false)[1] or ""
-    if vim.trim(line_above) == vim.trim(pdb_line) then
+    if vim.trim(line_above) == vim.trim(breakpoint_line) then
       vim.api.nvim_buf_set_lines(0, current_line - 2, current_line - 1, false, {})
     else
-      vim.api.nvim_buf_set_lines(0, current_line - 1, current_line - 1, false, {pdb_line})
+      vim.api.nvim_buf_set_lines(0, current_line - 1, current_line - 1, false, {breakpoint_line})
     end
   end
 end
 
-keymap('n', '<leader>db', toggle_pdb_above, { desc = "Toggle PDB breakpoint" })
-keymap('n', '<F9>', toggle_pdb_above, { desc = "Toggle breakpoint" })
+keymap('n', '<leader>b', toggle_breakpoint_above, { desc = "Toggle breakpoint" })
+keymap('n', '<F9>', toggle_breakpoint_above, { desc = "Toggle breakpoint" })
+
+-- Python environment detection shortcut
+keymap("n", "<leader>dp", "<cmd>DetectPythonVenv<cr>", { desc = "Detect Python Environment" })
 
 -- Terminal mappings
 keymap("t", "<esc><esc>", "<c-\\><c-n>", { desc = "Enter Normal Mode" })
 
--- Quick quit
-keymap("n", "<leader>qq", "<cmd>qa<cr>", { desc = "Quit all" })
+-- Quick quit with save prompt
+keymap("n", "<leader>qq", function()
+  local buffers = vim.api.nvim_list_bufs()
+  local modified = false
+  
+  for _, buf in ipairs(buffers) do
+    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].modified then
+      modified = true
+      break
+    end
+  end
+  
+  if modified then
+    local choice = vim.fn.confirm("Some buffers have unsaved changes. Save all and quit?", "&Yes\n&No\n&Cancel", 3)
+    if choice == 1 then
+      vim.cmd("wall")
+      vim.cmd("qa")
+    elseif choice == 2 then
+      vim.cmd("qa!")
+    end
+  else
+    vim.cmd("qa")
+  end
+end, { desc = "Quit all" })
 
 -- Final notification
 vim.api.nvim_create_autocmd("User", {
