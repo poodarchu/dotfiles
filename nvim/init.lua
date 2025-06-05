@@ -437,8 +437,8 @@ local plugins = {
             },
           },
           packages = { enable = true }, -- show how many plugins neovim loaded
-          project = { enable = true, limit = 8, icon = '󰏓', label = '', action = 'Telescope find_files cwd=' },
-          mru = { limit = 19, icon = '󰋚', label = '', cwd_only = false },
+          project = { enable = true, limit = 5, icon = '󰏓', label = '', action = 'Telescope find_files cwd=' },
+          mru = { limit = 15, icon = '󰋚', label = '', cwd_only = false },
         },
       })
     end,
