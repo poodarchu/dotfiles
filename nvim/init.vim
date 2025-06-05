@@ -1,3 +1,31 @@
+" vim-plug: Vim plugin manager
+" ============================
+"
+" 1. Download plug.vim and put it in 'autoload' directory
+"
+"   # Neovim
+"   sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+"     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+"
+" 2. Add a vim-plug section to your ~/.config/nvim/init.vim for Neovim
+"
+"   call plug#begin()
+"
+"   " List your plugins here
+"   Plug 'tpope/vim-sensible'
+"
+"   call plug#end()
+"
+" 3. Reload the file or restart Vim, then you can,
+"
+"     :PlugInstall to install plugins
+"     :PlugUpdate  to update plugins
+"     :PlugDiff    to review the changes from the last update
+"     :PlugClean   to remove plugins no longer in the list
+"
+" For more information, see https://github.com/junegunn/vim-plug
+"
+
 "*****************************************************************************
 "" Vim-Plug core
 "*****************************************************************************
@@ -35,18 +63,18 @@ Plug 'sbdchd/neoformat'
 Plug 'tpope/vim-fugitive'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
-Plug 'crispgm/nvim-tabline'
+" -- REFINED: Removed 'crispgm/nvim-tabline' as vim-airline's tabline is enabled and sufficient.
 Plug 'airblade/vim-gitgutter'
-Plug 'vim-scripts/grep.vim'
+" -- REFINED: Removed 'vim-scripts/grep.vim'. :Rg from fzf.vim + ripgrep is more powerful.
 Plug 'vim-scripts/CSApprox'
 Plug 'jiangmiao/auto-pairs'
-Plug 'dense-analysis/ale'
+Plug 'dense-analysis/ale' " -- REFINED: Kept for generic fixers; Python linting primarily via LSP.
 Plug 'Yggdroot/indentLine'
 Plug 'editor-bootstrap/vim-bootstrap-updater'
 Plug 'tpope/vim-rhubarb' " required by fugitive to :Gbrowse
 Plug 'morhetz/gruvbox'
 Plug 'mhinz/vim-startify'
-Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
+Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' } " -- REFINED: Kept for specific features like :PyRun and breakpoints. Overlapping features are disabled below.
 
 if isdirectory('/usr/local/opt/fzf')
   Plug '/usr/local/opt/fzf' | Plug 'junegunn/fzf.vim'
@@ -56,7 +84,7 @@ else
 endif
 
 let g:make = 'gmake'
-if exists('make')
+if executable('make')
         let g:make = 'make'
 endif
 
@@ -67,10 +95,12 @@ Plug 'xolox/vim-misc'
 Plug 'xolox/vim-session'
 
 "" Snippets
-Plug 'SirVer/ultisnips'
-Plug 'honza/vim-snippets'
+" -- REFINED: Removed 'SirVer/ultisnips' and 'honza/vim-snippets'.
+" -- REFINED: nvim-cmp is configured to use vim-vsnip.
+" -- REFINED: ACTION REQUIRED: Add a vsnip snippet collection if you haven't, e.g.:
+" Plug 'rafamadriz/friendly-snippets'
 
-""" Auto Completeion """
+""" Auto Completion & LSP """
 Plug 'neovim/nvim-lspconfig'
 Plug 'hrsh7th/cmp-nvim-lsp'
 Plug 'hrsh7th/cmp-buffer'
@@ -92,7 +122,6 @@ Plug 'ludwig/split-manpage.vim'
 
 " python
 "" Python Bundle
-Plug 'davidhalter/jedi-vim'
 Plug 'raimon49/requirements.txt.vim', {'for': 'requirements'}
 
 
@@ -132,7 +161,7 @@ set expandtab
 set autoindent
 set smarttab
 
-"" Map leader to ,
+"" Map leader to \
 let mapleader='\'
 
 "" Enable hidden buffers
@@ -153,7 +182,7 @@ else
 endif
 
 " session management
-let g:session_directory = "~/.config/nvim/session"
+let g:session_directory = expand("~/.config/nvim/session")
 let g:session_autoload = "no"
 let g:session_autosave = "no"
 let g:session_command_aliases = 1
@@ -168,13 +197,12 @@ set number
 let no_buffers_menu=1
 colorscheme gruvbox
 
-" Better command line completion 
+" Better command line completion
 set wildmenu
 
 " mouse support
-set mouse=r
-" set mousemodel=popup
-set scrolloff=15 
+set mouse=a " Changed to 'a' for all modes
+set scrolloff=15
 
 set t_Co=256
 set guioptions=egmrti
@@ -195,19 +223,8 @@ else
   let g:indentLine_faster = 1
 endif
 
-" jedi-vim
-let g:jedi#popup_on_dot = 1
-let g:jedi#goto_assignments_command = "<leader>g"
-let g:jedi#goto_definitions_command = "<leader>d"
-let g:jedi#documentation_command = "K"
-let g:jedi#usages_command = "<leader>n"
-let g:jedi#rename_command = "<leader>r"
-let g:jedi#show_call_signatures = "1"
-let g:jedi#completions_command = "<C-Space>"
-let g:jedi#smart_auto_mappings = 0
-
 "" Disable the blinking cursor.
-set gcr=a:blinkon0
+set guicursor=a:blinkon0
 
 au TermEnter * setlocal scrolloff=10
 au TermLeave * setlocal scrolloff=10
@@ -242,13 +259,13 @@ if exists("*fugitive#statusline")
   set statusline+=%{fugitive#statusline()}
 endif
 
-set completeopt=menu,menuone,noselect
+set completeopt=menu,menuone,noselect,preview " Added preview
 
 "" vim-airline
 let g:airline_theme = 'powerlineish'
 let g:airline#extensions#branch#enabled = 1
-let g:airline#extensions#ale#enabled = 1
-let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#ale#enabled = 1 " For ALE integration with airline
+let g:airline#extensions#tabline#enabled = 1 " Airline will handle the tabline
 let g:airline_skip_empty_sections = 1
 
 
@@ -266,7 +283,7 @@ cnoreabbrev Qall qall
 
 "" NERDTree configuration
 let g:NERDTreeChDirMode=2
-let g:NERDTreeIgnore=['node_modules','\.rbc$', '\~$', '\.pyc$', '\.db$', '\.sqlite$', '__pycache__']
+let g:NERDTreeIgnore=['node_modules','\.rbc$', '\~$', '\.pyc$', '\.db$', '\.sqlite$', '__pycache__', '\.git']
 let g:NERDTreeSortOrder=['^__\.py$', '\/$', '*', '\.swp$', '\.bak$', '\~$']
 let g:NERDTreeShowBookmarks=1
 let g:nerdtree_tabs_focus_on_files=1
@@ -274,19 +291,18 @@ let g:NERDTreeMapOpenInTabSilent = '<RightMouse>'
 let g:NERDTreeWinSize = 40
 let g:NERDTreeWinPos = "right"
 let g:NERDTreeShowLineNumbers=1
-set wildignore+=*/tmp/*,*.so,*.swp,*.zip,*.pyc,*.db,*.sqlite,*node_modules/
+set wildignore+=*/tmp/*,*.so,*.swp,*.zip,*.pyc,*.db,*.sqlite,*/node_modules/*,*/__pycache__/*
 nnoremap <silent> <F2> :NERDTreeFind<CR>
 nnoremap <silent> <F3> :NERDTreeToggle<CR>
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
-autocmd VimEnter * if !argc() | NERDTree | endif  " Load NERDTree only if vim is run without arguments
-autocmd VimEnter * wincmd p
+autocmd VimEnter * if !argc() | NERDTree | wincmd p | endif
 
 
-"" grep.vim
-nnoremap <silent> <leader>f :Rgrep<CR>
-let Grep_Default_Options = '-IR'
-let Grep_Skip_Files = '*.log *.db'
-let Grep_Skip_Dirs = '.git node_modules'
+"" -- REFINED: grep.vim settings removed.
+"" nnoremap <silent> <leader>f :Rgrep<CR> -- REFINED: Re-mapped below to use :Rg
+"" let Grep_Default_Options = '-IR'
+"" let Grep_Skip_Files = '*.log *.db'
+"" let Grep_Skip_Dirs = '.git node_modules __pycache__'
 
 "" terminal emulation
 nnoremap <silent> <leader>sh :terminal<CR>
@@ -298,36 +314,31 @@ command! FixWhitespace :%s/\s\+$//e
 "" Functions
 if !exists('*s:setupWrapping')
   function s:setupWrapping()
-    set wrap
-    set wm=2
-    set textwidth=120
+    set wrap linebreak wm=2 textwidth=120 " Added linebreak
   endfunction
 endif
 
 "" Autocmd Rules
 augroup auto-remove-trailing-spaces-py
+    autocmd!
     autocmd BufWritePre *.py :%s/\s\+$//e
 augroup END
 
-"" The PC is fast enough, do syntax highlight syncing from start unless 1000 lines
 augroup vimrc-sync-fromstart
   autocmd!
   autocmd BufEnter * :syntax sync maxlines=1000
 augroup END
 
-"" Remember cursor position
 augroup vimrc-remember-cursor-position
   autocmd!
-  autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
+  autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") && &ft !~# 'commit' | exe "normal! g`\"" | endif
 augroup END
 
-"" txt
 augroup vimrc-wrapping
   autocmd!
   autocmd BufRead,BufNewFile *.txt call s:setupWrapping()
 augroup END
 
-"" make/cmake
 augroup vimrc-make-cmake
   autocmd!
   autocmd FileType make setlocal noexpandtab
@@ -373,42 +384,56 @@ noremap <Leader>e :e <C-R>=expand("%:p:h") . "/" <CR>
 noremap <Leader>te :tabe <C-R>=expand("%:p:h") . "/" <CR>
 
 "" fzf.vim
-set wildmode=list:longest,list:full
-set wildignore+=*.o,*.obj,.git,*.rbc,*.pyc,__pycache__
-let $FZF_DEFAULT_COMMAND =  "find * -path '*/\.*' -prune -o -path 'node_modules/**' -prune -o -path 'target/**' -prune -o -path 'dist/**' -prune -o  -type f -print -o -type l -print 2> /dev/null"
+set wildignore+=*.o,*.obj,.git,*.rbc,*.pyc,*/__pycache__/*,"*/node_modules/*"
+if executable('fd')
+  let $FZF_DEFAULT_COMMAND = 'fd --type f --hidden --follow --exclude .git --exclude node_modules'
+elseif executable('find')
+  let $FZF_DEFAULT_COMMAND =  "find . -type f \( -path '*/\.*' -o -path './node_modules/*' -o -path './target/*' -o -path './dist/*' \) -prune -o -print -o -type l -print 2>/dev/null"
+endif
 
 "" The Silver Searcher
 if executable('ag')
+  " -- REFINED: FZF_DEFAULT_COMMAND is set above based on fd or find. This ag setting might override it if ag is found.
+  " -- REFINED: Consider if you want 'ag' to be the default for FZF file finding or just for grepprg.
+  " -- REFINED: If you prefer rg for file finding (as set below), you might comment out the next line.
   let $FZF_DEFAULT_COMMAND = 'ag --hidden --ignore .git -g ""'
-  set grepprg=ag\ --nogroup\ --nocolor
+  set grepprg=ag\ --nogroup\ --nocolor\ --vimgrep
 endif
 
 "" ripgrep
 if executable('rg')
+  " -- REFINED: This will override FZF_DEFAULT_COMMAND if rg is found, making it the default for FZF file listing.
   let $FZF_DEFAULT_COMMAND = 'rg --files --hidden --follow --glob "!.git/*"'
   set grepprg=rg\ --vimgrep
-  command! -bang -nargs=* Find call fzf#vim#grep('rg --column --line-number --no-heading --fixed-strings --ignore-case --hidden --follow --glob "!.git/*" --color "always" '.shellescape(<q-args>).'| tr -d "\017"', 1, <bang>0)
+  command! -bang -nargs=* Rg call fzf#vim#grep('rg --column --line-number --no-heading --color=always --smart-case '.shellescape(<q-args>), 1, <bang>0)
+  nnoremap <leader>fr :Rg<CR>
+  " -- REFINED: Re-mapped <leader>f to also use :Rg for consistency
+  nnoremap <silent> <leader>f :Rg<CR>
 endif
 
 cnoremap <C-P> <C-R>=expand("%:p:h") . "/" <CR>
 nnoremap <silent> <leader>b :Buffers<CR>
-nnoremap <silent> <leader>e :FZF -m<CR>
+nnoremap <silent> <leader>e :FZF -m<CR> " FZF for files (uses $FZF_DEFAULT_COMMAND)
 
 
 "" Recovery commands from history through FZF
 nmap <leader>y :History:<CR>
 
 
-"" snippets
-let g:UltiSnipsExpandTrigger="<tab>"
-let g:UltiSnipsJumpForwardTrigger="<tab>"
-let g:UltiSnipsJumpBackwardTrigger="<c-b>"
-let g:UltiSnipsEditSplit="vertical"
+"" -- REFINED: UltiSnips settings removed as UltiSnips plugin is removed.
+"" -- REFINED: Snippet expansion and navigation are now handled by nvim-cmp and vim-vsnip.
+" let g:UltiSnipsExpandTrigger="<tab>"
+" let g:UltiSnipsJumpForwardTrigger="<tab>"
+" let g:UltiSnipsJumpBackwardTrigger="<c-b>"
+" let g:UltiSnipsEditSplit="vertical"
 
 "" ale
-" let g:ale_linters = {'python': ['flake8']}
-let g:ale_linters = {}
+" -- REFINED: Explicitly disabling ALE linters for Python, assuming LSP will handle it.
+" -- REFINED: If you want ALE for specific Python linters alongside LSP, adjust this.
+let g:ale_linters = {'python': []} " Explicitly empty for python to defer to LSP
 let g:ale_linters_explicit = 1
+let g:ale_fixers = {'*': ['remove_trailing_lines', 'trim_whitespace']}
+" let g:ale_fix_on_save = 1 " Keep this commented if you prefer manual fixing or LSP formatting on save
 
 "" Disable visualbell
 set noerrorbells visualbell t_vb=
@@ -417,25 +442,26 @@ if has('autocmd')
 endif
 
 "" Copy/Paste/Cut
-set clipboard=unnamed,unnamedplus
+if has('clipboard')
+  set clipboard=unnamed,unnamedplus
+endif
 
 noremap YY "+y<CR>
 noremap <leader>p "+gP<CR>
 noremap XX "+x<CR>
 
 if has('macunix')
-  " pbcopy for OSX copy/paste
   vmap <C-x> :!pbcopy<CR>
   vmap <C-c> :w !pbcopy<CR><CR>
 endif
 
 "" Buffer nav
-noremap <leader>z :bp<CR>
-noremap <leader>q :bp<CR>
-noremap <leader>x :bn<CR>
-noremap <leader>w :bn<CR>
+noremap <leader>z :bprevious<CR>
+noremap <leader>q :bprevious<CR>
+noremap <leader>x :bnext<CR>
+noremap <leader>w :bnext<CR>
 
-nmap <F9> :bprev<CR>
+nmap <F9> :bprevious<CR>
 nmap <F10> :bnext<CR>
 
 "" Close buffer
@@ -464,10 +490,10 @@ nnoremap <Leader>o :.Gbrowse<CR>
 "" Custom configs
 
 "" c
-autocmd FileType c setlocal tabstop=4 shiftwidth=4 expandtab
-autocmd FileType cpp setlocal tabstop=4 shiftwidth=4 expandtab
+autocmd FileType c setlocal cindent tabstop=4 shiftwidth=4 expandtab
+autocmd FileType cpp setlocal cindent tabstop=4 shiftwidth=4 expandtab
 
-autocmd FileType yaml setlocal tabstop=4 shiftwidth=4 expandtab
+autocmd FileType yaml setlocal tabstop=2 shiftwidth=2 expandtab
 
 "" python
 augroup vimrc-python
@@ -479,9 +505,6 @@ augroup END
 "" vim-airline
 let g:airline#extensions#virtualenv#enabled = 1
 
-"" Syntax highlight
-let python_highlight_all = 1
-
 
 "" Include user's local vim config
 if filereadable(expand("~/.config/nvim/local_init.vim"))
@@ -490,40 +513,33 @@ endif
 
 "" Convenience variables
 
-"" vim-airline
+"" vim-airline symbols
 if !exists('g:airline_symbols')
   let g:airline_symbols = {}
 endif
 
-if !exists('g:airline_powerline_fonts')
+if !get(g:, 'airline_powerline_fonts', 0)
   let g:airline#extensions#tabline#left_sep = ' '
   let g:airline#extensions#tabline#left_alt_sep = '|'
   let g:airline_left_sep          = '▶'
   let g:airline_left_alt_sep      = '»'
   let g:airline_right_sep         = '◀'
   let g:airline_right_alt_sep     = '«'
-  let g:airline#extensions#branch#prefix     = '⤴' "➔, ➥, ⎇
+  let g:airline#extensions#branch#prefix     = '⤴'
   let g:airline#extensions#readonly#symbol   = '⊘'
   let g:airline#extensions#linecolumn#prefix = '¶'
   let g:airline#extensions#paste#symbol      = 'ρ'
   let g:airline_symbols.crypt     = '🔒'
   let g:airline_symbols.linenr    = '☰'
-  let g:airline_symbols.linenr    = '␊'
-  let g:airline_symbols.linenr    = '␤'
-  let g:airline_symbols.linenr    = '¶'
   let g:airline_symbols.maxlinenr = '㏑'
   let g:airline_symbols.branch    = '⎇'
   let g:airline_symbols.paste     = 'ρ'
-  let g:airline_symbols.paste     = 'Þ'
-  let g:airline_symbols.paste     = '∥'
   let g:airline_symbols.whitespace = 'Ξ'
   let g:airline_symbols.spell     = 'Ꞩ'
   let g:airline_symbols.notexists = 'Ɇ'
 else
   let g:airline#extensions#tabline#left_sep = ''
   let g:airline#extensions#tabline#left_alt_sep = ''
-
-  " powerline symbols
   let g:airline_left_sep = ''
   let g:airline_left_alt_sep = ''
   let g:airline_right_sep = ''
@@ -535,52 +551,47 @@ endif
 
 
 "" NERD Commenter
-"" Add spaces after comment delimiters by default
 let g:NERDSpaceDelims = 1
-"" Use compact syntax for prettified multi-line comments
 let g:NERDCompactSexyComs = 1
-"" Align line-wise comment delimiters flush left instead of following code indentation
 let g:NERDDefaultAlign = 'left'
-"" Set a language to use its alternate delimiters by default
 let g:NERDAltDelims_python = 1
-"" Add your own custom formats or override the defaults
 let g:NERDCustomDelimiters = { 'c': { 'left': '/**','right': '*/' } }
-"" Allow commenting and inverting empty lines (useful when commenting a region)
 let g:NERDCommentEmptyLines = 1
-"" Enable trimming of trailing whitespace when uncommenting
 let g:NERDTrimTrailingWhitespace = 1
-"" Enable NERDCommenterToggle to check all selected lines is commented or not 
 let g:NERDToggleCheckAllLines = 1
 
 
-"" Neoformat 
-let g:neoformat_enabled_python = ['autopep8']
+"" Neoformat
+" -- REFINED: Custom Neoformat settings for Python using autopep8 with specific arguments
+let g:neoformat_python_autopep8 = {
+    \ 'exe': 'autopep8',
+    \ 'args': ['--ignore=E226,E302,E41,E722,E731,W504,W503', '--max-line-length=120'],
+    \ 'stdin': 1
+    \ }
+let g:neoformat_enabled_python = ['autopep8'] " Ensure autopep8 is the formatter for python
 
 "" Python-mode settings
-
+" -- REFINED: These settings ensure python-mode doesn't overlap with LSP for core dev features
 let g:pymode = 1
-let g:pymode_warnings = 0
-let g:pymode_trim_whitespaces = 0
-let g:pymode_options = 0
-let g:pymode_indent = 0
-let g:pymode_folding = 0
-let g:pymode_motion = 0
+let g:pymode_warnings = 0         " Disable pymode's own warnings
+let g:pymode_trim_whitespaces = 0 " Let other tools handle this if needed
+let g:pymode_options = 0          " Disable pymode options menu
+let g:pymode_indent = 0           " Disable pymode's indenting
+let g:pymode_folding = 0          " Disable pymode's folding
+let g:pymode_motion = 0           " Disable pymode's motions
+let g:pymode_doc = 0              " Disable pymode's documentation feature
+let g:pymode_doc_bind = ''        " Unbind K if it was for pymode
+let g:pymode_virtualenv = 0       " Disable pymode's virtualenv support (can be handled externally)
+let g:pymode_lint = 0             " Disable pymode's linting (LSP/ALE)
+let g:pymode_rope = 0             " Disable pymode's rope integration
+let g:pymode_syntax = 0           " Disable pymode's syntax checking
 
-let g:pymode_doc = 0
-let g:pymode_doc_bind = 'K'
-
-let g:pymode_virtualenv = 0
-
-let g:pymode_run = 1
+" -- REFINED: Features from python-mode we are keeping:
+let g:pymode_run = 1              " Enable running python code
 let g:pymode_run_bind = '<leader>rr'
-
-let g:pymode_breakpoint = 1
+let g:pymode_breakpoint = 1       " Enable breakpoint features
 let g:pymode_breakpoint_bind = '<leader>bb'
-let g:pymode_breakpoint_cmd = ''
-
-let g:pymode_lint = 0
-let g:pymode_rope = 0
-let g:pymode_syntax = 0
+let g:pymode_breakpoint_cmd = ''  " Default breakpoint command
 
 
 lua <<EOF
@@ -589,67 +600,100 @@ lua <<EOF
 
   cmp.setup({
     snippet = {
-      -- REQUIRED - you must specify a snippet engine
       expand = function(args)
         vim.fn["vsnip#anonymous"](args.body) -- For `vsnip` users.
-        -- require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
-        -- require('snippy').expand_snippet(args.body) -- For `snippy` users.
-        -- vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
       end,
     },
     window = {
-      -- completion = cmp.config.window.bordered(),
-      -- documentation = cmp.config.window.bordered(),
+      completion = cmp.config.window.bordered(),
+      documentation = cmp.config.window.bordered(),
     },
     mapping = cmp.mapping.preset.insert({
       ['<C-b>'] = cmp.mapping.scroll_docs(-4),
       ['<C-f>'] = cmp.mapping.scroll_docs(4),
       ['<C-Space>'] = cmp.mapping.complete(),
       ['<C-e>'] = cmp.mapping.abort(),
-      ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+      ['<CR>'] = cmp.mapping.confirm({ select = true }),
     }),
     sources = cmp.config.sources({
       { name = 'nvim_lsp' },
-      { name = 'vsnip' }, -- For vsnip users.
-      -- { name = 'luasnip' }, -- For luasnip users.
-      -- { name = 'ultisnips' }, -- For ultisnips users.
-      -- { name = 'snippy' }, -- For snippy users.
+      { name = 'vsnip' }, -- Ensure vsnip is a source
     }, {
       { name = 'buffer' },
+      { name = 'path' },
     })
   })
 
-  -- Set configuration for specific filetype.
   cmp.setup.filetype('gitcommit', {
     sources = cmp.config.sources({
-      { name = 'cmp_git' }, -- You can specify the `cmp_git` source if you were installed it.
+      { name = 'cmp_git' }, -- If you have cmp-git or similar
     }, {
       { name = 'buffer' },
     })
   })
 
-  -- Use buffer source for `/` (if you enabled `native_menu`, this won't work anymore).
   cmp.setup.cmdline('/', {
     mapping = cmp.mapping.preset.cmdline(),
-    sources = {
-      { name = 'buffer' }
-    }
+    sources = { { name = 'buffer' } }
   })
 
-  -- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
   cmp.setup.cmdline(':', {
     mapping = cmp.mapping.preset.cmdline(),
-    sources = cmp.config.sources({
-      { name = 'path' }
-    }, {
-      { name = 'cmdline' }
-    })
+    sources = cmp.config.sources({ { name = 'path' } }, { { name = 'cmdline' } })
   })
 
   -- Setup lspconfig.
   local capabilities = require("cmp_nvim_lsp").default_capabilities()
-  -- Replace <YOUR_LSP_SERVER> with each lsp server you've enabled.
+
+  -- Define on_attach function for LSP keybindings
+  local on_attach = function(client, bufnr)
+    local bufopts = { noremap=true, silent=true, buffer=bufnr }
+    vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, bufopts)
+    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
+    vim.keymap.set('n', '<leader>d', vim.lsp.buf.definition, bufopts) -- Key for go-to-definition
+    vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)                -- Key for hover documentation
+    vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
+    vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, bufopts)
+    vim.keymap.set('n', '<space>wa', vim.lsp.buf.add_workspace_folder, bufopts)
+    vim.keymap.set('n', '<space>wr', vim.lsp.buf.remove_workspace_folder, bufopts)
+    vim.keymap.set('n', '<space>wl', function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, bufopts)
+    vim.keymap.set('n', '<space>D', vim.lsp.buf.type_definition, bufopts)
+    vim.keymap.set('n', '<space>rn', vim.lsp.buf.rename, bufopts)
+    vim.keymap.set('n', '<space>ca', vim.lsp.buf.code_action, bufopts)
+    vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts)
+    vim.keymap.set('n', '<space>e', vim.diagnostic.open_float, bufopts)
+    vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, bufopts)
+    vim.keymap.set('n', ']d', vim.diagnostic.goto_next, bufopts)
+    vim.keymap.set('n', '<space>q', vim.diagnostic.setloclist, bufopts)
+
+    if client.supports_method("textDocument/formatting") then
+      vim.keymap.set("n", "<leader>fm", function() vim.lsp.buf.format { async = true } end, bufopts)
+    end
+  end
+
+  -- REFINED: pylsp configuration with flake8 for diagnostics
   require('lspconfig')['pylsp'].setup {
     capabilities = capabilities,
+    on_attach = on_attach,
+    settings = {
+      pylsp = {
+        plugins = {
+          flake8 = {
+            enabled = true,
+            ignore = {'E226', 'E302', 'E41', 'E722', 'E731', 'W504', 'W503'},
+            maxLineLength = 120
+          },
+          -- autopep8 = { enabled = false }, -- Ensure pylsp's autopep8 is off if you use Neoformat
+          -- black = { enabled = false },    -- Ensure pylsp's black is off if you use Neoformat
+          -- mypy = { enabled = true, live_mode = true }, -- You can enable mypy if desired
+          jedi_completion = { enabled = true }, -- pylsp uses jedi internally
+          jedi_definition = { enabled = true },
+          jedi_hover = { enabled = true },
+          jedi_references = { enabled = true },
+          jedi_signature_help = { enabled = true },
+          jedi_symbols = { enabled = true }
+        }
+      }
+    }
   }
 EOF
