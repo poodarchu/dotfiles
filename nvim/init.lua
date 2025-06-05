@@ -628,24 +628,6 @@ local function setup_diagnostics()
             wrap = true,
         },
     })
-
-    -- 自动显示诊断信息
-    vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
-        group = vim.api.nvim_create_augroup("DiagnosticFloat", { clear = true }),
-        callback = function()
-            vim.diagnostic.open_float(nil, {
-                focusable = false,
-                close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
-                border = 'rounded',
-                source = 'always',
-                prefix = ' ',
-                scope = 'cursor',
-                max_width = 120,
-                max_height = 30,
-                wrap = true,
-            })
-        end
-    })
 end
 
 setup_diagnostics()
@@ -871,6 +853,19 @@ local function setup_keymaps()
 
     keymap('n', '<leader>b', toggle_breakpoint, { desc = "Toggle breakpoint" })
     keymap('n', '<F9>', toggle_breakpoint, { desc = "Toggle breakpoint" })
+
+    -- 在 setup_keymaps() 函数中添加
+    keymap("n", "<leader>de", function()
+        vim.diagnostic.open_float(nil, {
+            border = 'rounded',
+            source = 'always',
+            prefix = ' ',
+            scope = 'cursor',
+            max_width = 120,
+            max_height = 30,
+            wrap = true,
+        })
+    end, { desc = "Show diagnostics" })
 
     -- 终端模式
     keymap("t", "<esc><esc>", "<c-\\><c-n>", { desc = "Enter Normal Mode" })
