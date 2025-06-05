@@ -31,29 +31,7 @@ local plugins = {
     -- 核心功能
     'tpope/vim-sensible',
 
-    -- 文件浏览器 (使用 Oil 作为主要的，Neo-tree 作为备用)
-    {
-        'stevearc/oil.nvim',
-        dependencies = { "nvim-tree/nvim-web-devicons" },
-        keys = {
-            { "-",         "<cmd>Oil<cr>", desc = "Open parent directory" },
-            { "<leader>e", "<cmd>Oil<cr>", desc = "Open file explorer" },
-        },
-        opts = {
-            default_file_explorer = true,
-            columns = { "icon", "permissions", "size", "mtime" },
-            view_options = {
-                show_hidden = false,
-                is_hidden_file = function(name) return vim.startswith(name, ".") end,
-            },
-            float = {
-                padding = 2,
-                border = "rounded",
-                win_options = { winblend = 0 },
-            },
-        },
-    },
-
+    -- 文件浏览器 - 仅使用 Neo-tree
     {
         'nvim-neo-tree/neo-tree.nvim',
         branch = "v3.x",
@@ -64,7 +42,9 @@ local plugins = {
         },
         cmd = "Neotree",
         keys = {
-            { "<F3>", "<cmd>Neotree toggle<cr>", desc = "Toggle Neo-tree" },
+            { "<F3>",      "<cmd>Neotree toggle<cr>", desc = "Toggle Neo-tree" },
+            { "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle file explorer" },
+            { "-",         "<cmd>Neotree reveal<cr>", desc = "Reveal current file in Neo-tree" },
         },
         opts = {
             close_if_last_window = true,
@@ -74,6 +54,35 @@ local plugins = {
                 follow_current_file = { enabled = true },
                 use_libuv_file_watcher = true,
                 bind_to_cwd = false,
+                filtered_items = {
+                    visible = false,
+                    hide_dotfiles = false,
+                    hide_gitignored = true,
+                    hide_by_name = {
+                        "node_modules",
+                        "__pycache__",
+                        ".git",
+                        ".DS_Store",
+                        "thumbs.db",
+                    },
+                },
+            },
+            buffers = {
+                follow_current_file = { enabled = true },
+            },
+            git_status = {
+                window = {
+                    position = "float",
+                    mappings = {
+                        ["A"]  = "git_add_all",
+                        ["gu"] = "git_unstage_file",
+                        ["ga"] = "git_add_file",
+                        ["gr"] = "git_revert_file",
+                        ["gc"] = "git_commit",
+                        ["gp"] = "git_push",
+                        ["gg"] = "git_commit_and_push",
+                    }
+                }
             },
         },
     },
@@ -91,6 +100,44 @@ local plugins = {
                 changedelete = { text = '~' },
                 untracked = { text = '┆' },
             },
+            on_attach = function(bufnr)
+                local gs = package.loaded.gitsigns
+                local function map(mode, l, r, opts)
+                    opts = opts or {}
+                    opts.buffer = bufnr
+                    vim.keymap.set(mode, l, r, opts)
+                end
+
+                -- Navigation
+                map('n', ']h', function()
+                    if vim.wo.diff then return ']c' end
+                    vim.schedule(function() gs.next_hunk() end)
+                    return '<Ignore>'
+                end, { expr = true })
+
+                map('n', '[h', function()
+                    if vim.wo.diff then return '[c' end
+                    vim.schedule(function() gs.prev_hunk() end)
+                    return '<Ignore>'
+                end, { expr = true })
+
+                -- Actions
+                map('n', '<leader>hs', gs.stage_hunk, { desc = "Stage hunk" })
+                map('n', '<leader>hr', gs.reset_hunk, { desc = "Reset hunk" })
+                map('v', '<leader>hs', function() gs.stage_hunk { vim.fn.line('.'), vim.fn.line('v') } end,
+                    { desc = "Stage hunk" })
+                map('v', '<leader>hr', function() gs.reset_hunk { vim.fn.line('.'), vim.fn.line('v') } end,
+                    { desc = "Reset hunk" })
+                map('n', '<leader>hS', gs.stage_buffer, { desc = "Stage buffer" })
+                map('n', '<leader>hu', gs.undo_stage_hunk, { desc = "Undo stage hunk" })
+                map('n', '<leader>hR', gs.reset_buffer, { desc = "Reset buffer" })
+                map('n', '<leader>hp', gs.preview_hunk, { desc = "Preview hunk" })
+                map('n', '<leader>hb', function() gs.blame_line { full = true } end, { desc = "Blame line" })
+                map('n', '<leader>tb', gs.toggle_current_line_blame, { desc = "Toggle line blame" })
+                map('n', '<leader>hd', gs.diffthis, { desc = "Diff this" })
+                map('n', '<leader>hD', function() gs.diffthis('~') end, { desc = "Diff this ~" })
+                map('n', '<leader>td', gs.toggle_deleted, { desc = "Toggle deleted" })
+            end
         },
     },
 
@@ -105,11 +152,21 @@ local plugins = {
             options = {
                 theme = 'gruvbox',
                 globalstatus = true,
+                disabled_filetypes = { statusline = { "dashboard", "alpha" } },
             },
+            sections = {
+                lualine_a = { 'mode' },
+                lualine_b = { 'branch', 'diff', 'diagnostics' },
+                lualine_c = { 'filename' },
+                lualine_x = { 'encoding', 'fileformat', 'filetype' },
+                lualine_y = { 'progress' },
+                lualine_z = { 'location' }
+            },
+            extensions = { 'neo-tree', 'fugitive', 'trouble' },
         },
     },
 
-    -- 主题 (采用 B 配置的 gruvbox)
+    -- 主题
     {
         'morhetz/gruvbox',
         priority = 1000,
@@ -141,10 +198,17 @@ local plugins = {
     {
         'windwp/nvim-autopairs',
         event = "InsertEnter",
-        opts = { check_ts = true },
+        opts = {
+            check_ts = true, -- 重新启用 treesitter 检查
+            ts_config = {
+                lua = { 'string' },
+                javascript = { 'template_string' },
+                java = false,
+            }
+        },
     },
 
-    -- 模糊查找 (增强 Telescope 功能)
+    -- 模糊查找
     {
         'nvim-telescope/telescope.nvim',
         version = false,
@@ -154,7 +218,6 @@ local plugins = {
             'nvim-telescope/telescope-ui-select.nvim',
             'nvim-telescope/telescope-file-browser.nvim',
             'nvim-telescope/telescope-project.nvim',
-            'nvim-telescope/telescope-frecency.nvim',
         },
         cmd = "Telescope",
         keys = {
@@ -185,7 +248,6 @@ local plugins = {
             -- 项目管理
             { "<leader>fp", "<cmd>Telescope project<cr>",                   desc = "Projects" },
             { "<leader>fe", "<cmd>Telescope file_browser<cr>",              desc = "File Browser" },
-            { "<leader>fF", "<cmd>Telescope frecency<cr>",                  desc = "Frecency Files" },
 
             -- 高级搜索
             { "<leader>f/", "<cmd>Telescope current_buffer_fuzzy_find<cr>", desc = "Buffer Fuzzy Find" },
@@ -248,11 +310,6 @@ local plugins = {
                         },
                         hidden_files = true,
                     },
-                    frecency = {
-                        show_scores = false,
-                        show_unindexed = true,
-                        ignore_patterns = { "*.git/*", "*/tmp/*" },
-                    },
                 },
             })
 
@@ -261,7 +318,6 @@ local plugins = {
             telescope.load_extension('ui-select')
             telescope.load_extension('file_browser')
             telescope.load_extension('project')
-            telescope.load_extension('frecency')
         end,
     },
 
@@ -278,46 +334,75 @@ local plugins = {
         },
     },
 
-    -- 注释 (增强注释功能)
+    -- 注释 - 修复配置
     {
         'numToStr/Comment.nvim',
         event = { "BufReadPost", "BufNewFile" },
-        keys = {
-            { "<leader>cc",       desc = "Toggle comment line" },
-            { "<leader>c<space>", desc = "Toggle comment" },
-            { "\\cc",             desc = "Toggle comment line" },
-            { "\\c<space>",       desc = "Toggle comment" },
-        },
         config = function()
             require('Comment').setup({
+                padding = true,
+                sticky = true,
+                ignore = nil,
                 toggler = {
-                    line = '<leader>cc',
-                    block = '<leader>cb',
+                    line = 'gcc',
+                    block = 'gbc',
                 },
                 opleader = {
-                    line = '<leader>c<space>',
-                    block = '<leader>cb',
+                    line = 'gc',
+                    block = 'gb',
                 },
                 extra = {
-                    above = '<leader>cO',
-                    below = '<leader>co',
-                    eol = '<leader>cA',
+                    above = 'gcO',
+                    below = 'gco',
+                    eol = 'gcA',
                 },
                 mappings = {
                     basic = true,
                     extra = true,
                 },
+                pre_hook = nil,
+                post_hook = nil,
             })
 
-            -- 添加自定义键映射
-            vim.keymap.set('n', '\\cc', '<leader>cc', { remap = true, desc = "Toggle comment line" })
-            vim.keymap.set('n', '\\c<space>', '<leader>c<space>', { remap = true, desc = "Toggle comment" })
-            vim.keymap.set('v', '\\cc', '<leader>cc', { remap = true, desc = "Toggle comment selection" })
-            vim.keymap.set('v', '\\c<space>', '<leader>c<space>', { remap = true, desc = "Toggle comment selection" })
+            -- 自定义键映射
+            local function setup_comment_mappings()
+                local comment = require('Comment.api')
+
+                -- 单行注释
+                vim.keymap.set('n', '<leader>cc', function()
+                    comment.toggle.linewise.current()
+                end, { desc = "Toggle comment line" })
+
+                -- 块注释
+                vim.keymap.set('n', '<leader>cb', function()
+                    comment.toggle.blockwise.current()
+                end, { desc = "Toggle comment block" })
+
+                -- 可视模式注释
+                vim.keymap.set('v', '<leader>cc', function()
+                    comment.toggle.linewise(vim.fn.visualmode())
+                end, { desc = "Toggle comment selection" })
+
+                vim.keymap.set('v', '<leader>cb', function()
+                    comment.toggle.blockwise(vim.fn.visualmode())
+                end, { desc = "Toggle comment block selection" })
+
+                -- 备用快捷键
+                vim.keymap.set('n', '\\cc', function()
+                    comment.toggle.linewise.current()
+                end, { desc = "Toggle comment line" })
+
+                vim.keymap.set('v', '\\cc', function()
+                    comment.toggle.linewise(vim.fn.visualmode())
+                end, { desc = "Toggle comment selection" })
+            end
+
+            -- 延迟设置映射以确保插件完全加载
+            vim.defer_fn(setup_comment_mappings, 100)
         end,
     },
 
-    -- 启动界面 (增强 dashboard)
+    -- 启动界面
     {
         'nvimdev/dashboard-nvim',
         event = 'VimEnter',
@@ -369,99 +454,6 @@ local plugins = {
         end,
     },
 
-    -- Avante.nvim - AI 代码助手
-    {
-        "yetone/avante.nvim",
-        event = "VeryLazy",
-        version = false,
-        opts = {
-            provider = "claude",
-            auto_suggestions_provider = "claude",
-            behaviour = {
-                auto_suggestions = false,
-                auto_set_highlight_group = true,
-                auto_set_keymaps = true,
-                auto_apply_diff_after_generation = false,
-                support_paste_from_clipboard = false,
-            },
-            mappings = {
-                diff = {
-                    ours = "co",
-                    theirs = "ct",
-                    all_theirs = "ca",
-                    both = "cb",
-                    cursor = "cc",
-                    next = "]x",
-                    prev = "[x",
-                },
-                suggestion = {
-                    accept = "<M-l>",
-                    next = "<M-]>",
-                    prev = "<M-[>",
-                    dismiss = "<C-]>",
-                },
-                jump = {
-                    next = "]]",
-                    prev = "[[",
-                },
-                submit = {
-                    normal = "<CR>",
-                    insert = "<C-s>",
-                },
-            },
-            windows = {
-                position = "right",
-                width = 30,
-                sidebar_header = {
-                    enabled = true,
-                    align = "center",
-                    rounded = true,
-                },
-            },
-        },
-        build = "make",
-        dependencies = {
-            "nvim-treesitter/nvim-treesitter",
-            "stevearc/dressing.nvim",
-            "nvim-lua/plenary.nvim",
-            "MunifTanjim/nui.nvim",
-            "nvim-tree/nvim-web-devicons",
-            "zbirenbaum/copilot.lua",
-            {
-                "HakonHarnes/img-clip.nvim",
-                event = "VeryLazy",
-                opts = {
-                    default = {
-                        embed_image_as_base64 = false,
-                        prompt_for_file_name = false,
-                        drag_and_drop = {
-                            insert_mode = true,
-                        },
-                        use_absolute_path = true,
-                    },
-                },
-            },
-            {
-                'MeanderingProgrammer/render-markdown.nvim',
-                opts = {
-                    file_types = { "markdown", "Avante" },
-                },
-                ft = { "markdown", "Avante" },
-            },
-        },
-        keys = {
-            { "<leader>aa", function() require("avante.api").ask() end,     desc = "Avante: Ask" },
-            { "<leader>ar", function() require("avante.api").refresh() end, desc = "Avante: Refresh" },
-            { "<leader>ae", function() require("avante.api").edit() end,    desc = "Avante: Edit",          mode = "v" },
-            { "<leader>at", function() require("avante").toggle() end,      desc = "Avante: Toggle Sidebar" },
-            { "<leader>af", function() require("avante").focus() end,       desc = "Avante: Focus Sidebar" },
-            { "<leader>ac", "<cmd>AvanteChat<cr>",                          desc = "Avante: Chat" },
-            { "<leader>aN", "<cmd>AvanteChatNew<cr>",                       desc = "Avante: New Chat" },
-            { "<leader>ah", "<cmd>AvanteHistory<cr>",                       desc = "Avante: Chat History" },
-            { "<leader>aS", "<cmd>AvanteStop<cr>",                          desc = "Avante: Stop" },
-        },
-    },
-
     -- LSP 配置
     {
         'neovim/nvim-lspconfig',
@@ -477,12 +469,14 @@ local plugins = {
     {
         'williamboman/mason.nvim',
         cmd = "Mason",
-        opts = { ui = { border = "rounded" } },
+        opts = {
+            ui = { border = "rounded" },
+        },
     },
 
     { 'j-hui/fidget.nvim',      opts = {} },
 
-    -- 补全引擎
+    -- 补全引擎 - 仅使用 blink.cmp
     {
         'saghen/blink.cmp',
         lazy = false,
@@ -502,65 +496,22 @@ local plugins = {
             },
             sources = {
                 default = { 'lsp', 'path', 'snippets', 'buffer' },
-                providers = {
-                    avante_commands = {
-                        name = "avante_commands",
-                        module = "blink.compat.source",
-                        score_offset = 90,
-                        opts = {},
-                    },
-                    avante_files = {
-                        name = "avante_files",
-                        module = "blink.compat.source",
-                        score_offset = 100,
-                        opts = {},
-                    },
-                    avante_mentions = {
-                        name = "avante_mentions",
-                        module = "blink.compat.source",
-                        score_offset = 1000,
-                        opts = {},
-                    },
-                },
             },
             completion = {
                 accept = { auto_brackets = { enabled = true } },
                 documentation = { auto_show = true, auto_show_delay_ms = 200 },
                 ghost_text = { enabled = true },
-            }
+                menu = {
+                    border = 'rounded',
+                    scrolloff = 2,
+                    scrollbar = true,
+                },
+            },
+            signature = {
+                enabled = true,
+                window = { border = 'rounded' },
+            },
         },
-    },
-
-    -- Python 静态检查
-    {
-        'mfussenegger/nvim-lint',
-        event = { "BufReadPre", "BufNewFile" },
-        config = function()
-            local lint = require('lint')
-            lint.linters_by_ft = {
-                python = { 'flake8', 'mypy' },
-                lua = { 'luacheck' },
-                javascript = { 'eslint' },
-                typescript = { 'eslint' },
-            }
-
-            -- 防抖动检查
-            local lint_debounce = {}
-            local function debounced_lint()
-                local bufnr = vim.api.nvim_get_current_buf()
-                if lint_debounce[bufnr] then
-                    vim.loop.timer_stop(lint_debounce[bufnr])
-                end
-                lint_debounce[bufnr] = vim.loop.new_timer()
-                lint_debounce[bufnr]:start(500, 0, vim.schedule_wrap(function()
-                    if vim.api.nvim_buf_is_valid(bufnr) then lint.try_lint() end
-                end))
-            end
-
-            vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
-                callback = debounced_lint,
-            })
-        end,
     },
 
     -- 格式化
@@ -579,12 +530,12 @@ local plugins = {
                 lua = { "stylua" },
                 c = { "clang_format" },
                 cpp = { "clang_format" },
-                python = { "black", "isort" },
                 javascript = { "prettier" },
                 typescript = { "prettier" },
                 json = { "prettier" },
                 yaml = { "prettier" },
                 markdown = { "prettier" },
+                python = { "black", "isort" },
             },
             format_on_save = {
                 timeout_ms = 500,
@@ -593,7 +544,7 @@ local plugins = {
         },
     },
 
-    -- Treesitter
+    -- Treesitter - 重新添加
     {
         'nvim-treesitter/nvim-treesitter',
         build = ':TSUpdate',
@@ -606,7 +557,10 @@ local plugins = {
                     "python", "query", "regex", "tsx", "typescript", "vim", "yaml", "cpp",
                 },
                 auto_install = true,
-                highlight = { enable = true },
+                highlight = {
+                    enable = true,
+                    additional_vim_regex_highlighting = false,
+                },
                 indent = { enable = true },
                 incremental_selection = {
                     enable = true,
@@ -639,35 +593,146 @@ local plugins = {
         opts = {
             preset = "modern",
             spec = {
-                { "<leader>a", group = "avante" },
                 { "<leader>c", group = "comment/code" },
                 { "<leader>f", group = "file/find" },
                 { "<leader>g", group = "git" },
+                { "<leader>h", group = "git hunks" },
                 { "<leader>l", group = "lsp" },
                 { "<leader>q", group = "quit/session" },
                 { "<leader>w", group = "windows" },
                 { "<leader>b", group = "buffer/breakpoint" },
                 { "<leader>t", group = "toggle/terminal" },
-                { "<leader>x", group = "diagnostics" },
+                { "<leader>x", group = "trouble/diagnostics" },
+                { "<leader>d", group = "diagnostics/definition" },
             },
         },
     },
 
-    -- 诊断信息
+    -- Trouble - 增强的诊断显示
     {
         "folke/trouble.nvim",
+        dependencies = { "nvim-tree/nvim-web-devicons" },
         cmd = "Trouble",
         keys = {
-            { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>",              desc = "Document Diagnostics" },
-            { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
-            { "<leader>xl", "<cmd>Trouble loclist toggle<cr>",                  desc = "Location List" },
-            { "<leader>xq", "<cmd>Trouble qflist toggle<cr>",                   desc = "Quickfix List" },
+            -- 美观的诊断窗口
+            {
+                "<leader>xx",
+                "<cmd>Trouble diagnostics toggle<cr>",
+                desc = "Diagnostics (Trouble)",
+            },
+            {
+                "<leader>xX",
+                "<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+                desc = "Buffer Diagnostics (Trouble)",
+            },
+            {
+                "<leader>cs",
+                "<cmd>Trouble symbols toggle focus=false<cr>",
+                desc = "Symbols (Trouble)",
+            },
+            {
+                "<leader>cl",
+                "<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+                desc = "LSP Definitions / references / ... (Trouble)",
+            },
+            {
+                "<leader>xL",
+                "<cmd>Trouble loclist toggle<cr>",
+                desc = "Location List (Trouble)",
+            },
+            {
+                "<leader>xQ",
+                "<cmd>Trouble qflist toggle<cr>",
+                desc = "Quickfix List (Trouble)",
+            },
+            -- 快速打开当前行诊断
+            {
+                "<leader>dd",
+                function()
+                    local trouble = require("trouble")
+                    if trouble.is_open() then
+                        trouble.close()
+                    else
+                        -- 优先使用 Trouble 显示当前缓冲区诊断
+                        trouble.open("diagnostics")
+                        trouble.focus()
+                    end
+                end,
+                desc = "Toggle Diagnostics (Trouble)",
+            },
         },
-        config = function()
-            require("trouble").setup({
-                modes = {
-                    diagnostics = { auto_open = false, auto_close = false, auto_preview = true },
-                },
+        opts = {
+            -- 美观的配置
+            position = "bottom",            -- position of the list can be: bottom, top, left, right
+            height = 10,                    -- height of the trouble list when position is top or bottom
+            width = 50,                     -- width of the list when position is left or right
+            icons = true,                   -- use devicons for filenames
+            mode = "workspace_diagnostics", -- "workspace_diagnostics", "document_diagnostics", "quickfix", "lsp_references", "loclist"
+            severity = nil,                 -- nil (ALL) or vim.diagnostic.severity.ERROR | WARN | INFO | HINT
+            fold_open = "",                 -- icon used for open folds
+            fold_closed = "",               -- icon used for closed folds
+            group = true,                   -- group results by file
+            padding = true,                 -- add an extra new line on top of the list
+            cycle_results = true,           -- cycle item list when reaching beginning or end of list
+            action_keys = {                 -- key mappings for actions in the trouble list
+                -- map to {} to remove a mapping, for example:
+                -- close = {},
+                close = "q",                                 -- close the list
+                cancel = "<esc>",                            -- cancel the preview and get back to your last window / buffer / cursor
+                refresh = "r",                               -- manually refresh
+                jump = { "<cr>", "<tab>", "<2-leftmouse>" }, -- jump to the diagnostic or open / close folds
+                open_split = { "<c-x>" },                    -- open buffer in new split
+                open_vsplit = { "<c-v>" },                   -- open buffer in new vsplit
+                open_tab = { "<c-t>" },                      -- open buffer in new tab
+                jump_close = { "o" },                        -- jump to the diagnostic and close the list
+                toggle_mode = "m",                           -- toggle between "workspace" and "document" diagnostics mode
+                switch_severity = "s",                       -- switch "diagnostics" severity filter level to HINT / INFO / WARN / ERROR
+                toggle_preview = "P",                        -- toggle auto_preview
+                hover = "K",                                 -- opens a small popup with the full multiline message
+                preview = "p",                               -- preview the diagnostic location
+                open_code_href = "c",                        -- if present, open a URI with more information about the diagnostic error
+                close_folds = { "zM", "zm" },                -- close all folds
+                open_folds = { "zR", "zr" },                 -- open all folds
+                toggle_fold = { "zA", "za" },                -- toggle fold of current file
+                previous = "k",                              -- previous item
+                next = "j",                                  -- next item
+                help = "?"                                   -- help menu
+            },
+            multiline = true,                                -- render multi-line messages
+            indent_lines = true,                             -- add an indent guide below the fold icons
+            win_config = { border = "single" },              -- window configuration for floating windows. See |nvim_open_win()|.
+            auto_open = false,                               -- automatically open the list when you have diagnostics
+            auto_close = false,                              -- automatically close the list when you have no diagnostics
+            auto_preview = true,                             -- automatically preview the location of the diagnostic. <esc> to close preview and go back to last window
+            auto_fold = false,                               -- automatically fold a file trouble list at creation
+            auto_jump = { "lsp_definitions" },               -- for the given modes, automatically jump if there is only a single result
+            include_declaration = {
+                "lsp_references",
+                "lsp_implementations",
+                "lsp_definitions",
+            }, -- for the given modes, include the declaration of the current symbol in the results
+            signs = {
+                -- icons / text used for a diagnostic
+                error = "",
+                warning = "",
+                hint = "",
+                information = "",
+                other = "",
+            },
+            use_diagnostic_signs = false -- enabling this will use the signs defined in your lsp client
+        },
+        config = function(_, opts)
+            require("trouble").setup(opts)
+
+            -- 自动命令：在有诊断错误时自动显示 Trouble（可选）
+            vim.api.nvim_create_autocmd("DiagnosticChanged", {
+                group = vim.api.nvim_create_augroup("TroubleRefresh", { clear = true }),
+                callback = function()
+                    local trouble = require("trouble")
+                    if trouble.is_open() then
+                        trouble.refresh()
+                    end
+                end,
             })
         end,
     },
@@ -719,8 +784,10 @@ local plugins = {
                 diagnostics = "nvim_lsp",
                 offsets = {
                     { filetype = "neo-tree", text = "Neo-tree" },
-                    { filetype = "oil",      text = "Oil" },
+                    { filetype = "Trouble",  text = "Trouble" },
                 },
+                show_buffer_close_icons = false,
+                show_close_icon = false,
             },
         },
     },
@@ -790,7 +857,7 @@ opt.mouse = 'a'
 opt.clipboard = 'unnamedplus'
 opt.splitbelow = true
 opt.splitright = true
-opt.laststatus = 3 -- 全局状态栏 (推荐用于 avante.nvim)
+opt.laststatus = 3
 
 -- 补全
 opt.completeopt = { 'menu', 'menuone', 'noselect' }
@@ -834,7 +901,7 @@ autocmd("BufWritePre", {
 -- 使用 q 关闭某些文件类型
 autocmd("FileType", {
     group = augroup("CloseWithQ", { clear = true }),
-    pattern = { "help", "lspinfo", "man", "notify", "qf", "query" },
+    pattern = { "help", "lspinfo", "man", "notify", "qf", "query", "Trouble" },
     callback = function(event)
         vim.bo[event.buf].buflisted = false
         vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true })
@@ -849,22 +916,107 @@ autocmd("BufWritePre", {
 })
 
 -- ===========================
--- LSP 设置
+-- 诊断配置 - 与 Trouble 结合使用
+-- ===========================
+
+vim.diagnostic.config({
+    virtual_text = {
+        source = true,
+        prefix = "●",
+        format = function(diagnostic)
+            local message = diagnostic.message
+            if #message > 80 then
+                message = message:sub(1, 77) .. "..."
+            end
+            return message
+        end,
+    },
+    signs = true,
+    underline = true,
+    update_in_insert = false,
+    severity_sort = true,
+    float = {
+        border = "rounded",
+        source = "always",
+        focusable = true,
+        max_width = 120,
+        max_height = 30,
+        wrap = true,
+        header = "",
+        prefix = "",
+    },
+})
+
+-- 减少自动弹窗的频率，优先使用 Trouble
+autocmd({ "CursorHold" }, {
+    group = augroup("DiagnosticFloat", { clear = true }),
+    callback = function()
+        -- 只在没有打开 Trouble 窗口时显示诊断弹窗
+        local trouble = require("trouble")
+        if not trouble.is_open() then
+            local opts = {
+                focusable = false,
+                close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
+                border = 'rounded',
+                source = 'always',
+                prefix = ' ',
+                scope = 'cursor',
+                max_width = 120,
+                max_height = 30,
+                wrap = true,
+            }
+            vim.diagnostic.open_float(nil, opts)
+        end
+    end
+})
+
+-- ===========================
+-- LSP 设置 - 修复跨文件跳转问题
 -- ===========================
 
 require('neodev').setup()
 
 local function get_capabilities()
-    return require('blink.cmp').get_lsp_capabilities()
+    local capabilities = require('blink.cmp').get_lsp_capabilities()
+    -- 确保支持跨文件跳转
+    capabilities.textDocument.definition = {
+        dynamicRegistration = true,
+        linkSupport = true
+    }
+    capabilities.textDocument.declaration = {
+        dynamicRegistration = true,
+        linkSupport = true
+    }
+    capabilities.textDocument.implementation = {
+        dynamicRegistration = true,
+        linkSupport = true
+    }
+    capabilities.textDocument.typeDefinition = {
+        dynamicRegistration = true,
+        linkSupport = true
+    }
+    capabilities.textDocument.references = {
+        dynamicRegistration = true
+    }
+    return capabilities
 end
 
 local on_attach = function(client, bufnr)
     local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
-    -- LSP 导航 (实现 \d 或 gd 跳转到定义)
-    vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, bufopts)
-    vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
-    vim.keymap.set('n', '\\d', vim.lsp.buf.definition, bufopts) -- 添加 \d 快捷键
+    -- LSP 导航 - 修复跨文件跳转
+    vim.keymap.set('n', 'gD', function()
+        vim.lsp.buf.declaration()
+    end, bufopts)
+
+    vim.keymap.set('n', 'gd', function()
+        vim.lsp.buf.definition()
+    end, bufopts)
+
+    vim.keymap.set('n', '\\d', function()
+        vim.lsp.buf.definition()
+    end, bufopts)
+
     vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)
     vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
     vim.keymap.set('n', '<leader>cr', vim.lsp.buf.rename, bufopts)
@@ -876,10 +1028,19 @@ local on_attach = function(client, bufnr)
     -- 类型定义和签名帮助
     vim.keymap.set('n', '<leader>D', vim.lsp.buf.type_definition, bufopts)
     vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, bufopts)
+
+    -- 调试信息
+    vim.keymap.set('n', '<leader>dl', function()
+        local clients = vim.lsp.get_active_clients({ bufnr = bufnr })
+        for _, c in pairs(clients) do
+            print("LSP Client:", c.name, "Root:", c.config.root_dir)
+        end
+    end, { buffer = bufnr, desc = "Show LSP info" })
 end
 
+-- Mason LSP 设置 - 增强 pylsp 配置以支持跨文件跳转
 require('mason-lspconfig').setup({
-    ensure_installed = { 'clangd', 'lua_ls', 'pylsp', 'ruff_lsp' },
+    ensure_installed = { 'clangd', 'lua_ls', 'pylsp' },
     handlers = {
         function(server_name)
             require('lspconfig')[server_name].setup({
@@ -895,32 +1056,75 @@ require('mason-lspconfig').setup({
                 settings = {
                     pylsp = {
                         plugins = {
-                            pycodestyle = { enabled = true, maxLineLength = 120 },
+                            -- 使用标准 PEP 错误代码
+                            pycodestyle = {
+                                enabled = true,
+                                maxLineLength = 120,
+                                ignore = { "E501" }
+                            },
                             pyflakes = { enabled = true },
-                            autopep8 = { enabled = false },
+                            autopep8 = { enabled = true },
                             yapf = { enabled = false },
                             isort = { enabled = true },
-                            jedi_completion = { enabled = true },
-                            jedi_definition = { enabled = true },
+                            -- 增强 Jedi 功能以支持跨文件跳转
+                            jedi_completion = {
+                                enabled = true,
+                                include_params = true,
+                                include_class_objects = true,
+                                fuzzy = true,
+                            },
+                            jedi_definition = {
+                                enabled = true,
+                                follow_imports = true,
+                                follow_builtin_imports = true,
+                            },
                             jedi_hover = { enabled = true },
-                            jedi_references = { enabled = true },
+                            jedi_references = {
+                                enabled = true,
+                                include_declaration = true,
+                            },
                             jedi_signature_help = { enabled = true },
+                            jedi_symbols = {
+                                enabled = true,
+                                all_scopes = true,
+                            },
                             rope_completion = { enabled = true },
+                            rope_autoimport = {
+                                enabled = true,
+                                completions = { enabled = true },
+                                code_actions = { enabled = true },
+                            },
+                            mccabe = { enabled = false },
+                            pydocstyle = { enabled = false },
+                            flake8 = { enabled = false },
                         },
+                        configurationSources = { "pycodestyle" },
                     },
                 },
-            })
-        end,
+                -- 改进根目录检测以支持更好的项目管理
+                root_dir = function(fname)
+                    local util = require('lspconfig.util')
+                    -- 首先查找项目标记文件
+                    local root = util.root_pattern(
+                        'pyproject.toml',
+                        'setup.py',
+                        'setup.cfg',
+                        'requirements.txt',
+                        'Pipfile',
+                        'poetry.lock',
+                        '.git'
+                    )(fname)
 
-        ["ruff_lsp"] = function()
-            require('lspconfig').ruff_lsp.setup({
-                capabilities = get_capabilities(),
-                on_attach = on_attach,
+                    -- 如果没找到，使用文件目录
+                    return root or util.path.dirname(fname)
+                end,
+                -- 增加初始化选项
                 init_options = {
                     settings = {
                         args = {},
+                        path = {},
                     }
-                }
+                },
             })
         end,
 
@@ -932,40 +1136,15 @@ require('mason-lspconfig').setup({
                     Lua = {
                         runtime = { version = 'LuaJIT' },
                         diagnostics = { globals = { 'vim' } },
-                        workspace = { checkThirdParty = false },
+                        workspace = {
+                            checkThirdParty = false,
+                            library = vim.api.nvim_get_runtime_file("", true),
+                        },
                         telemetry = { enable = false },
                     },
                 },
             })
         end,
-    },
-})
-
--- ===========================
--- 诊断配置
--- ===========================
-
-vim.diagnostic.config({
-    virtual_text = {
-        source = true,
-        prefix = "●",
-        format = function(diagnostic)
-            local message = diagnostic.message
-            if #message > 60 then
-                message = message:sub(1, 57) .. "..."
-            end
-            return message
-        end,
-    },
-    signs = true,
-    underline = true,
-    update_in_insert = false,
-    severity_sort = true,
-    float = {
-        border = "rounded",
-        source = "always",
-        focusable = true,
-        max_width = 100,
     },
 })
 
