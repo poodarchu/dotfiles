@@ -438,12 +438,7 @@ local plugins = {
           },
           packages = { enable = true }, -- show how many plugins neovim loaded
           project = { enable = true, limit = 8, icon = '󰏓', label = '', action = 'Telescope find_files cwd=' },
-          mru = { limit = 10, icon = '󰋚', label = '', cwd_only = false },
-          footer = function()
-            local stats = require('lazy').stats()
-            local ms = (math.floor(stats.startuptime * 100 + 0.5) / 100)
-            return { "⚡ Neovim loaded " .. stats.loaded .. "/" .. stats.count .. " plugins in " .. ms .. "ms" }
-          end,
+          mru = { limit = 19, icon = '󰋚', label = '', cwd_only = false },
         },
       })
     end,
@@ -765,7 +760,51 @@ local plugins = {
   { 'stevearc/dressing.nvim', lazy = true },
 
   -- Enhanced notifications
-  { "rcarriga/nvim-notify", opts = {} },
+  {
+    "rcarriga/nvim-notify",
+    event = "VeryLazy",
+    opts = {
+      background_colour = "#000000",
+      fps = 30,
+      icons = {
+        DEBUG = "",
+        ERROR = "",
+        INFO = "",
+        TRACE = "✎",
+        WARN = ""
+      },
+      level = 2,
+      minimum_width = 50,
+      render = "default",
+      stages = "fade_in_slide_out",
+      timeout = 5000,
+      top_down = true
+    },
+    config = function(_, opts)
+      local notify = require("notify")
+      notify.setup(opts)
+
+      -- Set nvim-notify as the default notify function
+      vim.notify = notify
+
+      -- Custom notification for lazy.nvim updates
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "LazySync",
+        callback = function()
+          notify("Plugins synced!", "info", { title = "Lazy.nvim" })
+        end,
+      })
+    end,
+    keys = {
+      {
+        "<leader>un",
+        function()
+          require("notify").dismiss({ silent = true, pending = true })
+        end,
+        desc = "Dismiss all Notifications",
+      },
+    },
+  },
 
   -- Buffer management
   {
