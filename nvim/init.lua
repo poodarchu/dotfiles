@@ -261,14 +261,6 @@ local plugins = {
         },
         disable_filetype = { "TelescopePrompt", "vim" },
       })
-
-      -- Integration with cmp
-      local cmp_autopairs = require('nvim-autopairs.completion.cmp')
-      local cmp = require('cmp')
-      cmp.event:on(
-        'confirm_done',
-        cmp_autopairs.on_confirm_done()
-      )
     end,
   },
 
@@ -692,7 +684,7 @@ opt.smartcase = true
 
 -- UI
 opt.number = true
-opt.relativenumber = true
+opt.relativenumber = false
 opt.cursorline = true
 opt.signcolumn = 'yes'
 opt.wrap = false
@@ -809,20 +801,21 @@ autocmd("FileType", {
 })
 
 -- ===========================
--- LSP SETUP
+-- LSP SETUP (FIXED)
 -- ===========================
 
+-- Setup neodev first (for Lua development)
 require('neodev').setup()
-require('mason').setup()
-require('mason-lspconfig').setup({
-  ensure_installed = { 'pylsp', 'clangd', 'lua_ls' },
-  automatic_installation = true,
-})
 
+-- Setup Mason
+require('mason').setup()
+
+-- Setup lspconfig first
 local lspconfig = require('lspconfig')
 local cmp_nvim_lsp = require('cmp_nvim_lsp')
 local capabilities = cmp_nvim_lsp.default_capabilities()
 
+-- Define the on_attach function
 local on_attach = function(client, bufnr)
   local bufopts = { noremap = true, silent = true, buffer = bufnr }
 
@@ -840,39 +833,60 @@ local on_attach = function(client, bufnr)
   vim.keymap.set('n', ']d', vim.diagnostic.goto_next, bufopts)
 end
 
--- Configure servers
-lspconfig.pylsp.setup({
-  capabilities = capabilities,
-  on_attach = on_attach,
-  settings = {
-    pylsp = {
-      plugins = {
-        pycodestyle = { maxLineLength = 120 },
-        flake8 = { enabled = true, maxLineLength = 120 },
-        black = { enabled = false },
-      },
-    },
-  },
-})
+-- Now setup mason-lspconfig with handlers
+require('mason-lspconfig').setup({
+  ensure_installed = { 'pylsp', 'clangd', 'lua_ls' },
+  automatic_installation = true,
+  handlers = {
+    -- Default handler for all servers
+    function(server_name)
+      lspconfig[server_name].setup({
+        capabilities = capabilities,
+        on_attach = on_attach,
+      })
+    end,
 
-lspconfig.clangd.setup({
-  capabilities = capabilities,
-  on_attach = on_attach,
-  cmd = { "clangd", "--offset-encoding=utf-16" },
-})
+    -- Specific configurations for servers that need custom settings
+    ["pylsp"] = function()
+      lspconfig.pylsp.setup({
+        capabilities = capabilities,
+        on_attach = on_attach,
+        settings = {
+          pylsp = {
+            plugins = {
+              pycodestyle = { maxLineLength = 120 },
+              flake8 = { enabled = true, maxLineLength = 120 },
+              black = { enabled = false },
+            },
+          },
+        },
+      })
+    end,
 
-lspconfig.lua_ls.setup({
-  capabilities = capabilities,
-  on_attach = on_attach,
-  settings = {
-    Lua = {
-      runtime = { version = 'LuaJIT' },
-      workspace = {
-        checkThirdParty = false,
-        library = { vim.env.VIMRUNTIME },
-      },
-      telemetry = { enable = false },
-    },
+    ["clangd"] = function()
+      lspconfig.clangd.setup({
+        capabilities = capabilities,
+        on_attach = on_attach,
+        cmd = { "clangd", "--offset-encoding=utf-16" },
+      })
+    end,
+
+    ["lua_ls"] = function()
+      lspconfig.lua_ls.setup({
+        capabilities = capabilities,
+        on_attach = on_attach,
+        settings = {
+          Lua = {
+            runtime = { version = 'LuaJIT' },
+            workspace = {
+              checkThirdParty = false,
+              library = { vim.env.VIMRUNTIME },
+            },
+            telemetry = { enable = false },
+          },
+        },
+      })
+    end,
   },
 })
 
@@ -951,6 +965,13 @@ cmp.setup.cmdline(':', {
     { name = 'cmdline' }
   })
 })
+
+-- Integration with autopairs
+local cmp_autopairs = require('nvim-autopairs.completion.cmp')
+cmp.event:on(
+  'confirm_done',
+  cmp_autopairs.on_confirm_done()
+)
 
 -- ===========================
 -- DIAGNOSTICS
