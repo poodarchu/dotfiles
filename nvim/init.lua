@@ -28,9 +28,6 @@ vim.opt.rtp:prepend(lazypath)
 
 -- 插件配置
 local plugins = {
-    -- 基础增强
-    'tpope/vim-sensible',
-
     -- 文件管理器
     {
         'nvim-neo-tree/neo-tree.nvim',
@@ -144,7 +141,7 @@ local plugins = {
         dependencies = { 'nvim-tree/nvim-web-devicons', 'morhetz/gruvbox' },
         opts = {
             options = { theme = 'gruvbox', globalstatus = true },
-            extensions = { 'neo-tree', 'fugitive', 'trouble' },
+            extensions = { 'neo-tree', 'fugitive' },
         },
     },
 
@@ -167,7 +164,7 @@ local plugins = {
         opts = {
             indent = { char = "│" },
             scope = { enabled = true },
-            exclude = { filetypes = { "help", "alpha", "dashboard", "neo-tree", "Trouble", "lazy", "mason" } },
+            exclude = { filetypes = { "help", "alpha", "dashboard", "neo-tree", "lazy", "mason" } },
         },
     },
 
@@ -268,17 +265,6 @@ local plugins = {
         end,
     },
 
-    -- 会话管理
-    {
-        'folke/persistence.nvim',
-        event = "BufReadPre",
-        opts = { options = { "buffers", "curdir", "tabpages", "winsize", "help", "globals", "skiprtp", "folds" } },
-        keys = {
-            { "<leader>qs", function() require("persistence").load() end,                desc = "Restore Session" },
-            { "<leader>ql", function() require("persistence").load({ last = true }) end, desc = "Restore Last Session" },
-        },
-    },
-
     -- 注释插件
     {
         'numToStr/Comment.nvim',
@@ -350,13 +336,12 @@ local plugins = {
         end,
     },
 
-
     -- LSP 支持
     { 'neovim/nvim-lspconfig',   event = { "BufReadPre", "BufNewFile" } },
     { 'williamboman/mason.nvim', cmd = "Mason",                         opts = { ui = { border = "rounded" } } },
     'williamboman/mason-lspconfig.nvim',
     'folke/neodev.nvim',
-    { 'j-hui/fidget.nvim',      opts = {} },
+    { 'j-hui/fidget.nvim', opts = {} },
 
     -- 补全系统
     {
@@ -461,23 +446,6 @@ local plugins = {
         },
     },
 
-    -- 诊断工具
-    {
-        "folke/trouble.nvim",
-        cmd = "Trouble",
-        keys = {
-            { "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>",              desc = "Document Diagnostics" },
-            { "<leader>xX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics" },
-            { "<leader>xl", "<cmd>Trouble loclist toggle<cr>",                  desc = "Location List" },
-            { "<leader>xq", "<cmd>Trouble qflist toggle<cr>",                   desc = "Quickfix List" },
-        },
-        config = function()
-            require("trouble").setup({
-                modes = { diagnostics = { auto_open = false, auto_close = false, auto_preview = true } },
-            })
-        end,
-    },
-
     -- 终端
     {
         'akinsho/toggleterm.nvim',
@@ -490,7 +458,6 @@ local plugins = {
     },
 
     -- UI 增强
-    { 'stevearc/dressing.nvim', lazy = true },
     {
         "rcarriga/nvim-notify",
         event = "VeryLazy",
@@ -501,27 +468,6 @@ local plugins = {
             vim.notify = notify
         end,
     },
-
-    -- 缓冲区标签
-    {
-        "akinsho/bufferline.nvim",
-        event = "VeryLazy",
-        keys = {
-            { "<S-h>", "<cmd>BufferLineCyclePrev<cr>", desc = "Prev buffer" },
-            { "<S-l>", "<cmd>BufferLineCycleNext<cr>", desc = "Next buffer" },
-        },
-        opts = {
-            options = {
-                diagnostics = "nvim_lsp",
-                offsets = { { filetype = "neo-tree", text = "Neo-tree" } },
-                show_buffer_close_icons = false,
-                show_close_icon = false,
-            },
-        },
-    },
-
-    -- 自动清理空白
-    { 'mcauley-penney/tidy.nvim', event = "BufWritePre", opts = { filetype_exclude = { "markdown", "diff" } } },
 }
 
 -- 加载插件
@@ -633,11 +579,23 @@ local function setup_autocmds()
         end,
     })
 
-    -- Python 自动去除尾随空格
+    -- 自动去除尾随空格 (替代 tidy.nvim)
     autocmd("BufWritePre", {
-        group = augroup("AutoRemoveTrailingSpacesPy", { clear = true }),
-        pattern = "*.py",
-        command = ":%s/\\s\\+$//e",
+        group = augroup("AutoRemoveTrailingSpaces", { clear = true }),
+        pattern = "*",
+        callback = function()
+            -- 排除特定文件类型
+            local excluded_filetypes = { "markdown", "diff" }
+            if vim.tbl_contains(excluded_filetypes, vim.bo.filetype) then
+                return
+            end
+            -- 保存光标位置
+            local save_cursor = vim.fn.getpos(".")
+            -- 去除尾随空格
+            vim.cmd([[%s/\s\+$//e]])
+            -- 恢复光标位置
+            vim.fn.setpos(".", save_cursor)
+        end,
     })
 end
 
@@ -884,6 +842,10 @@ local function setup_keymaps()
 
     keymap("n", "<leader>bb", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
 
+    -- 缓冲区导航 (替代 bufferline)
+    keymap("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Prev buffer" })
+    keymap("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
+
     -- Python 调试断点
     local function toggle_breakpoint()
         local current_line = vim.api.nvim_win_get_cursor(0)[1]
@@ -946,9 +908,11 @@ local function setup_keymaps()
     keymap("n", "<S-Tab>", "gT", { desc = "Previous tab" })
     keymap("n", "<S-t>", "<cmd>tabnew<CR>", { desc = "New tab" })
 
-    -- 诊断导航
+    -- 诊断导航 (替代 trouble.nvim 的部分功能)
     keymap("n", "<leader>dp", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
     keymap("n", "<leader>dn", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+    keymap("n", "<leader>xx", "<cmd>lua vim.diagnostic.setloclist()<cr>", { desc = "Diagnostics to loclist" })
+    keymap("n", "<leader>xq", "<cmd>lua vim.diagnostic.setqflist()<cr>", { desc = "Diagnostics to quickfix" })
 end
 
 setup_keymaps()
