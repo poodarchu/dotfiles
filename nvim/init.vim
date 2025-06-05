@@ -5,7 +5,6 @@
 "*****************************************************************************
 "" Vim-Plug core
 "*****************************************************************************
-" (Core vim-plug logic unchanged)
 let vimplug_autoload_path = stdpath('data') . '/site/autoload/plug.vim'
 let vimplug_plugged_path = stdpath('data') . '/plugged'
 
@@ -26,29 +25,16 @@ call plug#begin(vimplug_plugged_path)
 "*****************************************************************************
 "" Plug install packages
 "*****************************************************************************
-" NOTE: ALE, Neoformat, and python-mode have been commented out to consolidate
-" Python tooling around python-lsp-server (pylsp).
-" If you need ALE/Neoformat for other languages, you can re-enable them and
-" configure them to ignore Python or use them selectively.
+Plug 'tpope/vim-sensible'
 
-Plug 'tpope/vim-sensible' " Sensible Vim defaults
-
-" File Explorer
 Plug 'scrooloose/nerdtree'
 Plug 'jistr/vim-nerdtree-tabs'
-
-" Commenting
 Plug 'scrooloose/nerdcommenter'
 
-" Formatting - Commented out for Python, pylsp will handle it.
-" Plug 'sbdchd/neoformat'
-
-" Git
 Plug 'tpope/vim-fugitive'
 Plug 'tpope/vim-rhubarb'
 Plug 'airblade/vim-gitgutter'
 
-" UI & Appearance
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'morhetz/gruvbox'
@@ -56,13 +42,8 @@ Plug 'Yggdroot/indentLine'
 Plug 'mhinz/vim-startify'
 Plug 'vim-scripts/CSApprox'
 
-" Editing Aids
 Plug 'jiangmiao/auto-pairs'
 
-" Linting - Commented out for Python, pylsp will handle it.
-" Plug 'dense-analysis/ale'
-
-" Fuzzy Finder
 if isdirectory('/usr/local/opt/fzf')
   Plug '/usr/local/opt/fzf'
   Plug 'junegunn/fzf.vim'
@@ -71,15 +52,12 @@ else
   Plug 'junegunn/fzf.vim'
 endif
 
-" Async processes (Consider if still needed)
 let g:make = executable('gmake') ? 'gmake' : 'make'
-Plug 'Shougo/vimproc.vim', {'do': g:make}
+Plug 'Shougo/vimproc.vim', {'do': g:make} " Consider if still needed
 
-" Session Management
 Plug 'xolox/vim-misc'
 Plug 'xolox/vim-session'
 
-" Snippets & Completion (Essential for nvim-cmp)
 Plug 'hrsh7th/vim-vsnip'
 Plug 'rafamadriz/friendly-snippets'
 Plug 'hrsh7th/nvim-cmp'
@@ -90,12 +68,9 @@ Plug 'hrsh7th/cmp-cmdline'
 Plug 'hrsh7th/cmp-vsnip'
 Plug 'onsails/lspkind-nvim'
 
-" LSP
 Plug 'neovim/nvim-lspconfig'
 
-" Language Specific
-" Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' } " Commented out, using pylsp
-Plug 'vim-scripts/c.vim', {'for': ['c', 'cpp']} " Consider if clangd (LSP) is sufficient
+Plug 'vim-scripts/c.vim', {'for': ['c', 'cpp']}
 Plug 'ludwig/split-manpage.vim'
 Plug 'raimon49/requirements.txt.vim', {'for': 'requirements'}
 
@@ -211,9 +186,8 @@ set completeopt=menu,menuone,noselect,preview
 "" vim-airline
 let g:airline_theme = 'gruvbox'
 let g:airline#extensions#branch#enabled = 1
-" let g:airline#extensions#ale#enabled = 0 " ALE is commented out/removed for Python
 let g:airline#extensions#tabline#enabled = 1
-let g:airline_powerline_fonts = 0
+let g:airline_powerline_fonts = 0 " Set to 1 for Powerline/Nerd Fonts
 
 if !exists('g:airline_symbols')
   let g:airline_symbols = {}
@@ -275,11 +249,12 @@ nnoremap <silent> <F2> :NERDTreeFind<CR>
 autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() | quit | endif
 autocmd VimEnter * if !argc() && empty(expand('%')) | Startify | endif
 
+
 "" STARTIFY Configuration
 let g:startify_lists = [
-      \ { 'type': 'files',     'header': ['   Recent Files']            },
-      \ { 'type': 'sessions',  'header': ['   Sessions']                },
-      \ { 'type': 'bookmarks', 'header': ['   Bookmarks']               },
+      \ { 'type': 'files',     'header': ['   Recent Files']             },
+      \ { 'type': 'sessions',  'header': ['   Sessions']                 },
+      \ { 'type': 'bookmarks', 'header': ['   Bookmarks']                },
       \ { 'type': [
       \     '   Edit Neovim Config  >>>  :edit $MYVIMRC',
       \     '   Source Neovim Config>>>  :source $MYVIMRC',
@@ -295,12 +270,18 @@ let g:startify_enable_special = 1
 nnoremap <silent> <leader>sh :terminal<CR>
 
 "" Run current Python file
-nnoremap <leader>rr :FloatermNew --autoclose=0 python %<CR>
-" If you prefer a split:
-" nnoremap <leader>rr :term python %<CR>
+nnoremap <leader>rr :execute 'terminal python3 ' . shellescape(expand('%'))<CR>
 
-"" remove trailing whitespaces command
-command! FixWhitespace :%s/\s\+$//e
+"" Trailing Whitespace Highlighting and Auto-trimming
+augroup TrailingWhitespace
+  autocmd!
+  " Highlight trailing whitespace with a red background.
+  " Using a specific hex for guibg and 'Red' for ctermbg which gruvbox should handle.
+  autocmd ColorScheme * highlight TrailingSpace guibg=#FF5555 ctermbg=Red
+  autocmd VimEnter,WinEnter,ColorScheme * match TrailingSpace /\s\+$/
+  " Automatically remove trailing whitespace on save
+  autocmd BufWritePre * :%s/\s\+$//e
+augroup END
 
 "" Functions
 if !exists('*s:setupTextFileWrapping')
@@ -311,11 +292,40 @@ if !exists('*s:setupTextFileWrapping')
   endfunction
 endif
 
+"" Python PDB Breakpoint Toggle
+function! TogglePdbAbove()
+  let current_line_nr = line('.')
+  let current_indent = matchstr(getline(current_line_nr), '^\s*')
+  " Added a comment to the pdb line for clarity when reading code
+  let pdb_line = current_indent . "import pdb; pdb.set_trace()  # Breakpoint"
+
+  if current_line_nr == 1
+    let line_content_1 = getline(1)
+    if trim(line_content_1) == trim(pdb_line) " Check if line 1 is already the breakpoint
+      silent 1delete
+      echom "Breakpoint removed from line 1."
+    else " Add breakpoint at the top
+      call append(0, pdb_line)
+      echom "Breakpoint added at new line 1 (above original line 1)."
+    endif
+  else
+    let line_above_nr = current_line_nr - 1
+    let line_above_content = getline(line_above_nr)
+    if trim(line_above_content) == trim(pdb_line) " Check if line above is the breakpoint
+      execute line_above_nr . 'delete'
+      echom "Breakpoint removed from line " . line_above_nr . "."
+    else " Add breakpoint above current line
+      call append(line_above_nr, pdb_line)
+      echom "Breakpoint added on line " . line_above_nr . " (above current)."
+    endif
+  endif
+endfunction
+nnoremap <leader>b :call TogglePdbAbove()<CR>
+
+
 "" Autocmd Rules
 augroup GlobalAutoCmds
   autocmd!
-  " Trailing whitespace removal for Python is now handled by LSP format-on-save
-  " autocmd BufWritePre *.py :%s/\s\+$//e
   autocmd BufEnter * :syntax sync maxlines=1000
   autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") && &ft !~# 'commit' | exe "normal! g`\"" | endif
   autocmd BufRead,BufNewFile *.txt call s:setupTextFileWrapping()
@@ -326,7 +336,7 @@ augroup END
 
 set autoread
 
-"" Mappings (General)
+"" Mappings (General - selected, most are unchanged)
 noremap <Leader>h :<C-u>split<CR><C-w>j
 noremap <Leader>v :<C-u>vsplit<CR><C-w>l
 noremap <Leader>ga :Gwrite<CR>
@@ -353,6 +363,7 @@ nnoremap <leader>. :lcd %:p:h<CR>:pwd<CR>
 noremap <Leader>oe :e <C-R>=expand("%:p:h") . "/" <CR>
 noremap <Leader>ot :tabe <C-R>=expand("%:p:h") . "/" <CR>
 
+
 "" fzf.vim
 if executable('fd')
   let $FZF_DEFAULT_COMMAND = 'fd --type f --hidden --follow --exclude .git --exclude node_modules --exclude target --exclude dist'
@@ -371,47 +382,8 @@ nnoremap <silent> <leader>ff :Files<CR>
 nnoremap <silent> <leader>fg :Rg<CR>
 nnoremap <silent> <leader>fb :Buffers<CR>
 nnoremap <silent> <leader>fh :History<CR>
-nnoremap <leader>fy :History<CR>
+nnoremap <leader>fy :History<CR> " Note: <leader>fy was same as <leader>fh, kept for consistency if intended
 
-"" ale - Linter (Commented out for Python)
-" let g:ale_python_flake8_options = '--max-line-length=120 --ignore=E203,W503,E266'
-" let g:ale_python_pylint_options = '--max-line-length=120 --disable=all --enable=E,F,W0611,W0612,W0613,W0614'
-" let g:ale_linters = {
-" \   'python': [], " Disabled for Python, handled by pylsp
-" \   'c': ['clangtidy', 'gcc'],
-" \   'cpp': ['clangtidy', 'g++'],
-" \   'javascript': ['eslint'],
-" \   'typescript': ['eslint'],
-" \   'lua': ['luacheck'],
-" \   'sh': ['shellcheck'],
-" \}
-" let g:ale_fixers = {
-" \   '*': ['remove_trailing_lines', 'trim_whitespace'],
-" \   'python': [], " Disabled for Python, handled by pylsp
-" \   'javascript': ['eslint', 'prettier'],
-" \   'typescript': ['eslint', 'prettier'],
-" \   'lua': ['stylua'],
-" \}
-" let g:ale_lint_on_text_changed = 'normal'
-" let g:ale_lint_on_enter = 1
-" let g:ale_lint_on_save = 1
-" let g:ale_fix_on_save = 0
-" let g:airline#extensions#ale#enabled = 0 " Disabled as ALE python support is removed
-
-" " ALE sign settings (Commented out as ALE python support is removed)
-" let g:ale_sign_error = 'E'
-" let g:ale_sign_warning = 'W'
-" highlight ALEErrorSign ctermfg=red guifg=Red
-" highlight ALEWarningSign ctermfg=yellow guifg=Yellow
-
-"" Neoformat - Formatter (Commented out for Python)
-" let g:neoformat_python_autopep8 = {
-"   \ 'exe': 'autopep8',
-"   \ 'args': ['--max-line-length', '120', '--ignore', 'E203,W503,E266'],
-"   \ 'stdin': 1,
-" \ }
-" let g:neoformat_enabled_python = [] " Disabled for Python
-" " autocmd BufWritePre *.py Neoformat " Formatting on save will be handled by LSP
 
 "" Disable visualbell
 set noerrorbells visualbell t_vb=
@@ -477,27 +449,6 @@ let g:NERDCustomDelimiters = { 'c': { 'left': '/**', 'right': '*/' } }
 let g:NERDCommentEmptyLines = 1
 let g:NERDTrimTrailingWhitespace = 1
 let g:NERDToggleCheckAllLines = 1
-
-"" Python-mode settings (Commented out)
-" let g:pymode_lint_ignore="E203,W503,E266"
-" let g:pymode_options_max_line_length=120
-" let g:pymode_warnings = 0
-" let g:pymode_trim_whitespaces = 0
-" let g:pymode_options = 0
-" let g:pymode_indent = 0
-" let g:pymode_folding = 0
-" let g:pymode_motion = 0
-" let g:pymode_doc = 0
-" let g:pymode_doc_bind = ''
-" let g:pymode_virtualenv = 1
-" let g:pymode_lint = 0
-" let g:pymode_rope = 0
-" let g:pymode_syntax = 1
-" let g:pymode_run = 0 " Disabled, using custom mapping
-" let g:pymode_run_bind = ''
-" let g:pymode_breakpoint = 0 " Disabled, consider nvim-dap for debugging
-" let g:pymode_breakpoint_bind = ''
-" let g:pymode_breakpoint_cmd = ''
 
 "" Include user's local vim config
 if filereadable(expand("~/.config/nvim/local_init.vim"))
@@ -574,7 +525,7 @@ local on_attach = function(client, bufnr)
   vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
   vim.keymap.set('n', 'K', vim.lsp.buf.hover, bufopts)
   vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
-  vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, bufopts)
+  vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, bufopts) -- Note: C-k for signature_help might conflict with some terminal emulators or window managers.
   vim.keymap.set('n', '<leader>wa', vim.lsp.buf.add_workspace_folder, bufopts)
   vim.keymap.set('n', '<leader>wr', vim.lsp.buf.remove_workspace_folder, bufopts)
   vim.keymap.set('n', '<leader>wl', function() print(vim.inspect(vim.lsp.buf.list_workspace_folders())) end, bufopts)
@@ -587,16 +538,16 @@ local on_attach = function(client, bufnr)
   vim.keymap.set('n', ']d', vim.diagnostic.goto_next, bufopts)
   vim.keymap.set('n', '<leader>dl', vim.diagnostic.setloclist, bufopts)
 
-  -- Enable LSP formatting on save for supported filetypes (like Python with pylsp)
+  -- NEW: Manual LSP formatting command
   if client.supports_method("textDocument/formatting") then
-    vim.api.nvim_create_autocmd("BufWritePre", {
-      group = vim.api.nvim_create_augroup("LspFormatOnSave_" .. bufnr, {clear = true}),
-      buffer = bufnr,
-      callback = function()
-        vim.lsp.buf.format({ bufnr = bufnr, timeout_ms = 2000 }) -- Added timeout
-      end
-    })
+    vim.keymap.set({'n', 'v'}, '<leader>fm', function()
+        vim.lsp.buf.format({ async = true, timeout_ms = 5000 }) -- Use async for non-blocking format
+        print("LSP formatting requested...")
+      end, bufopts)
   end
+
+  -- REMOVED: LSP Formatting on Save (BufWritePre)
+  -- Auto-formatting on save is now disabled. Use <leader>fm to format manually.
 end
 
 require('lspconfig')['pylsp'].setup {
@@ -604,24 +555,29 @@ require('lspconfig')['pylsp'].setup {
   on_attach = on_attach,
   settings = {
     pylsp = {
+      -- Explicitly set pycodestyle maxLineLength for autopep8 (formatter).
+      -- NOTE: If formatting still defaults to 80 columns, check for project-specific
+      -- configuration files (e.g., pyproject.toml, setup.cfg, .flake8, .autopep8)
+      -- as they might override this global setting.
+      pycodestyle = {
+        maxLineLength = 120
+      },
       plugins = {
         flake8 = {
           enabled = true,
-          maxLineLength = 120,
+          maxLineLength = 120, -- For flake8 linter
           ignore = {'E203', 'W503', 'E266'},
         },
         pylint = {
           enabled = true,
-          args = {"--max-line-length=120", "--disable=all", "--enable=E,F,W0611,W0612,W0613,W0614"},
+          args = {"--max-line-length=120", "--disable=all", "--enable=E,F,W0611,W0612,W0613,W0614"}, -- For pylint linter
         },
-        autopep8 = {
-          enabled = true, -- Handles formatting
-          -- args = {"--max-line-length", "120"} -- Can add specific autopep8 args if needed
+        autopep8 = { -- For formatting
+          enabled = true,
+          -- autopep8 should pick up maxLineLength from the global pylsp.pycodestyle setting above.
         },
-        -- You can use black instead of autopep8 if you prefer:
-        -- black = { enabled = true, line_length = 120 },
-        isort = {
-          enabled = true, -- Handles import sorting, typically runs before other formatters
+        isort = { -- For import sorting
+          enabled = true,
         },
         jedi_completion = { enabled = true },
         jedi_definition = { enabled = true },
@@ -629,10 +585,10 @@ require('lspconfig')['pylsp'].setup {
         jedi_references = { enabled = true },
         jedi_signature_help = { enabled = true },
         jedi_symbols = { enabled = true },
-        pycodestyle = { enabled = false }, -- Covered by flake8
-        rope = { enabled = false } -- LSP provides some refactoring, or use dedicated refactor plugins
+        pycodestyle = { enabled = false }, -- Linting plugin for pycodestyle; covered by flake8
+        rope = { enabled = false }
       },
-      configurationSources = {"flake8"}
+      configurationSources = {"flake8"} -- Allows project-specific .flake8 to influence pylsp
     }
   }
 }
@@ -641,6 +597,7 @@ require('lspconfig')['clangd'].setup{
     capabilities = capabilities,
     on_attach = on_attach,
     cmd = {"clangd", "--offset-encoding=utf-16"},
+    -- For clangd, formatting style is typically controlled by a .clang-format file in your project root.
 }
 
 vim.cmd("highlight default link DiagnosticError ErrorMsg")
@@ -654,13 +611,7 @@ vim.fn.sign_define("DiagnosticSignInfo",  {text = "I", texthl = "DiagnosticInfo"
 vim.fn.sign_define("DiagnosticSignHint",  {text = "H", texthl = "DiagnosticHint"})
 
 vim.diagnostic.config({
-    virtual_text = true, -- ENABLED: This is the key change
-    -- Or for more control, use a dictionary:
-    -- virtual_text = {
-    --   spacing = 4, -- Number of spaces to display virtual text after the line
-    --   prefix = '▎', -- Or any other character you like as a prefix
-    --   source = "if_many", -- Show if there are multiple diagnostics for the line, or "always"
-    -- },
+    virtual_text = true,
     signs = true,
     underline = true,
     update_in_insert = false,
@@ -674,4 +625,5 @@ vim.diagnostic.config({
         prefix = "",
     },
 })
+
 EOF
