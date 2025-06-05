@@ -40,7 +40,6 @@ Plug 'vim-airline/vim-airline-themes'
 Plug 'morhetz/gruvbox'
 Plug 'Yggdroot/indentLine'
 Plug 'mhinz/vim-startify'
-Plug 'vim-scripts/CSApprox'
 
 Plug 'jiangmiao/auto-pairs'
 
@@ -51,9 +50,6 @@ else
   Plug 'junegunn/fzf', { 'do': './install --bin' }
   Plug 'junegunn/fzf.vim'
 endif
-
-let g:make = executable('gmake') ? 'gmake' : 'make'
-Plug 'Shougo/vimproc.vim', {'do': g:make} " Consider if still needed
 
 Plug 'xolox/vim-misc'
 Plug 'xolox/vim-session'
@@ -70,7 +66,6 @@ Plug 'onsails/lspkind-nvim'
 
 Plug 'neovim/nvim-lspconfig'
 
-Plug 'vim-scripts/c.vim', {'for': ['c', 'cpp']}
 Plug 'ludwig/split-manpage.vim'
 Plug 'raimon49/requirements.txt.vim', {'for': 'requirements'}
 
@@ -144,7 +139,7 @@ set wildmenu
 set mouse=a
 set scrolloff=8
 set sidescrolloff=5
-set t_Co=256
+set t_Co=256 " Keep as a fallback or if specific colors are needed beyond termguicolors for some contexts
 set guioptions=egmrti
 
 if has("gui_running")
@@ -153,8 +148,7 @@ if has("gui_running")
   else
     set guifont=Monospace\ 10
   endif
-else
-  let g:CSApprox_loaded = 1
+" Removed CSApprox specific line here
 endif
 
 let g:indentLine_enabled = 1
@@ -252,9 +246,9 @@ autocmd VimEnter * if !argc() && empty(expand('%')) | Startify | endif
 
 "" STARTIFY Configuration
 let g:startify_lists = [
-      \ { 'type': 'files',     'header': ['   Recent Files']             },
-      \ { 'type': 'sessions',  'header': ['   Sessions']                 },
-      \ { 'type': 'bookmarks', 'header': ['   Bookmarks']                },
+      \ { 'type': 'files',     'header': ['   Recent Files']                 },
+      \ { 'type': 'sessions',  'header': ['   Sessions']                     },
+      \ { 'type': 'bookmarks', 'header': ['   Bookmarks']                    },
       \ { 'type': [
       \     '   Edit Neovim Config  >>>  :edit $MYVIMRC',
       \     '   Source Neovim Config>>>  :source $MYVIMRC',
@@ -393,7 +387,7 @@ endif
 
 "" Copy/Paste/Cut
 if has('clipboard')
-  set clipboard=unnamedplus,unnamed
+  set clipboard=unnamedplus,unnamed " Consider 'unnamedplus' alone if 'unnamed' causes issues with primary selection
 endif
 vnoremap <leader>y "+y
 nnoremap <leader>p "+p
@@ -432,7 +426,7 @@ nnoremap <Leader>o :.Gbrowse<CR>
 "" Custom configs for filetypes
 augroup FileTypeConfig
   autocmd!
-  autocmd FileType c,cpp setlocal cindent tabstop=4 shiftwidth=4 expandtab colorcolumn=100
+  autocmd FileType c,cpp setlocal cindent tabstop=4 shiftwidth=4 expandtab colorcolumn=100 " cindent is built-in, works fine with clangd
   autocmd FileType yaml setlocal tabstop=2 shiftwidth=2 expandtab colorcolumn=100
   autocmd FileType json setlocal tabstop=2 shiftwidth=2 expandtab colorcolumn=100
   autocmd FileType markdown setlocal tabstop=2 shiftwidth=2 expandtab colorcolumn=100
