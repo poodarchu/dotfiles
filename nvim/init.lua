@@ -35,9 +35,9 @@ local plugins = {
         dependencies = { "nvim-lua/plenary.nvim", "nvim-tree/nvim-web-devicons", "MunifTanjim/nui.nvim" },
         cmd = "Neotree",
         keys = {
-            { "<F3>",      "<cmd>Neotree toggle<cr>" },
-            { "<leader>e", "<cmd>Neotree toggle<cr>" },
-            { "-",         "<cmd>Neotree reveal<cr>" },
+            { "<F3>",      "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
+            { "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
+            { "-",         "<cmd>Neotree reveal<cr>", desc = "Reveal current file in NeoTree" },
         },
         opts = {
             close_if_last_window = true,
@@ -105,23 +105,12 @@ local plugins = {
                     return '<Ignore>'
                 end, { expr = true, desc = "Previous Hunk" })
 
-                local hunk_maps = {
-                    ['<leader>hs'] = { gs.stage_hunk, "Stage hunk" },
-                    ['<leader>hr'] = { gs.reset_hunk, "Reset hunk" },
-                    ['<leader>hS'] = { gs.stage_buffer, "Stage buffer" },
-                    ['<leader>hu'] = { gs.undo_stage_hunk, "Undo stage hunk" },
-                    ['<leader>hR'] = { gs.reset_buffer, "Reset buffer" },
-                    ['<leader>hp'] = { gs.preview_hunk, "Preview hunk" },
-                    ['<leader>hb'] = { function() gs.blame_line { full = true } end, "Blame line" },
-                    ['<leader>tb'] = { gs.toggle_current_line_blame, "Toggle line blame" },
-                    ['<leader>hd'] = { gs.diffthis, "Diff this" },
-                    ['<leader>hD'] = { function() gs.diffthis('~') end, "Diff this ~" },
-                    ['<leader>td'] = { gs.toggle_deleted, "Toggle deleted" },
-                }
-
-                for key, value in pairs(hunk_maps) do
-                    map('n', key, value[1], { desc = value[2] })
-                end
+                map('n', '<leader>hs', gs.stage_hunk, { desc = "Stage hunk" })
+                map('n', '<leader>hr', gs.reset_hunk, { desc = "Reset hunk" })
+                map('n', '<leader>hS', gs.stage_buffer, { desc = "Stage buffer" })
+                map('n', '<leader>hR', gs.reset_buffer, { desc = "Reset buffer" })
+                map('n', '<leader>hp', gs.preview_hunk, { desc = "Preview hunk" })
+                map('n', '<leader>hb', function() gs.blame_line { full = true } end, { desc = "Blame line" })
 
                 map('v', '<leader>hs', function() gs.stage_hunk { vim.fn.line('.'), vim.fn.line('v') } end,
                     { desc = "Stage selected lines" })
@@ -131,15 +120,13 @@ local plugins = {
         },
     },
 
-    'tpope/vim-fugitive',
-
     {
         'nvim-lualine/lualine.nvim',
         event = "VeryLazy",
         dependencies = { 'nvim-tree/nvim-web-devicons', 'morhetz/gruvbox' },
         opts = {
             options = { theme = 'gruvbox', globalstatus = true },
-            extensions = { 'neo-tree', 'fugitive' },
+            extensions = { 'neo-tree' }, -- fugitive removed
         },
     },
 
@@ -176,39 +163,36 @@ local plugins = {
 
     {
         'nvim-telescope/telescope.nvim',
-        version = false,
+        version = false, -- Removing version = false as it's for specific use cases; can be added back if issues arise
         dependencies = {
             'nvim-lua/plenary.nvim',
             { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
             'nvim-telescope/telescope-ui-select.nvim',
-            'nvim-telescope/telescope-file-browser.nvim',
-            'nvim-telescope/telescope-project.nvim',
+            -- 'nvim-telescope/telescope-file-browser.nvim', -- REMOVED
+            -- 'nvim-telescope/telescope-project.nvim', -- REMOVED
         },
         cmd = "Telescope",
         keys = function()
             local builtin = require('telescope.builtin')
             local keys = {
-                { "<leader>ff", builtin.find_files,                                                           "Find Files" },
-                { "<leader>fg", builtin.live_grep,                                                            "Live Grep" },
-                { "<leader>fw", builtin.grep_string,                                                          "Grep Word" },
-                { "<leader>fb", builtin.buffers,                                                              "Buffers" },
-                { "<leader>fh", builtin.help_tags,                                                            "Help Tags" },
-                { "<leader>fr", builtin.oldfiles,                                                             "Recent Files" },
-                { "<leader>fc", builtin.commands,                                                             "Commands" },
-                { "<leader>fk", builtin.keymaps,                                                              "Keymaps" },
-                { "<leader>fm", builtin.marks,                                                                "Marks" },
-                { "<leader>fj", builtin.jumplist,                                                             "Jumplist" },
-                { "<leader>gf", builtin.git_files,                                                            "Git Files" },
-                { "<leader>gb", builtin.git_branches,                                                         "Git Branches" },
-                { "<leader>gC", builtin.git_commits,                                                          "Git Commits" },
-                { "<leader>gt", builtin.git_status,                                                           "Git Status" },
-                { "<leader>ls", builtin.lsp_document_symbols,                                                 "Document Symbols" },
-                { "<leader>lS", builtin.lsp_workspace_symbols,                                                "Workspace Symbols" },
-                { "<leader>ld", builtin.diagnostics,                                                          "Diagnostics (List)" },
-                { "<leader>lr", builtin.lsp_references,                                                       "References" },
-                { "<leader>fp", function() require('telescope').extensions.project.project({}) end,           "Projects" },
-                { "<leader>fe", function() require('telescope').extensions.file_browser.file_browser({}) end, "File Browser" },
-                { "<leader>f/", builtin.current_buffer_fuzzy_find,                                            "Buffer Fuzzy Find" },
+                { "<leader>ff", builtin.find_files, desc = "Find Files" },
+                { "<leader>fg", builtin.live_grep, desc = "Live Grep" },
+                { "<leader>fw", builtin.grep_string, desc = "Grep Word" },
+                { "<leader>fb", builtin.buffers, desc = "Buffers" },
+                { "<leader>fh", builtin.help_tags, desc = "Help Tags" },
+                { "<leader>fr", builtin.oldfiles, desc = "Recent Files" },
+                -- { "<leader>fc", builtin.commands, desc = "Commands" }, -- Less common
+                -- { "<leader>fk", builtin.keymaps, desc = "Keymaps" }, -- Less common
+                { "<leader>gf", builtin.git_files, desc = "Git Files" },
+                { "<leader>gb", builtin.git_branches, desc = "Git Branches" },
+                { "<leader>gC", builtin.git_commits, desc = "Git Commits (Telescope)" }, -- Distinct from Fugitive's original gC
+                { "<leader>gt", builtin.git_status, desc = "Git Status (Telescope)" },
+                { "<leader>ls", builtin.lsp_document_symbols, desc = "Document Symbols" },
+                { "<leader>lS", builtin.lsp_workspace_symbols, desc = "Workspace Symbols" },
+                { "<leader>ld", builtin.diagnostics, desc = "Diagnostics (List)" },
+                -- { "<leader>fp", function() require('telescope').extensions.project.project({}) end, "Projects" }, -- REMOVED
+                -- { "<leader>fe", function() require('telescope').extensions.file_browser.file_browser({}) end, "File Browser" }, -- REMOVED
+                { "<leader>f/", builtin.current_buffer_fuzzy_find, desc = "Buffer Fuzzy Find" },
             }
             return keys
         end,
@@ -247,18 +231,13 @@ local plugins = {
                 },
                 extensions = {
                     fzf = { fuzzy = true, override_generic_sorter = true, override_file_sorter = true },
-                    file_browser = { theme = "ivy", hijack_netrw = false },
-                    project = {
-                        base_dirs = {
-                            '~/.config',
-                        },
-                        hidden_files = true
-                    },
+                    -- file_browser = { theme = "ivy", hijack_netrw = false }, -- REMOVED
+                    -- project = { base_dirs = { '~/.config', }, hidden_files = true }, -- REMOVED
                     ['ui-select'] = { theme = "ivy" },
                 },
             })
 
-            for _, ext in ipairs({ 'fzf', 'ui-select', 'file_browser', 'project' }) do
+            for _, ext in ipairs({ 'fzf', 'ui-select' }) do -- project, file_browser removed
                 pcall(telescope.load_extension, ext)
             end
         end,
@@ -288,25 +267,19 @@ local plugins = {
                         "██████╔╝███████╗██║ ╚████║╚█████╔╝██║██║ ╚████║    ███████╗██║  ██║╚██████╔╝",
                         "╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚════╝ ╚═╝╚═╝  ╚═══╝    ╚══════╝╚═╝  ╚═╝ ╚═════╝ ",
                         "",
-                        "                  💻 Welcome to Neovim 💻                  ",
+                        "                 💻 Welcome to Neovim 💻                 ",
                         "",
                     },
                     shortcut = {
                         { desc = '󰊳 Update Plugins', group = 'Function', action = 'Lazy update', key = 'u' },
                         { desc = ' Find Files', group = 'Identifier', action = 'Telescope find_files', key = 'f' },
                         { desc = ' Live Grep', group = 'String', action = 'Telescope live_grep', key = 'g' },
-                        { desc = ' Projects', group = 'Type', action = 'Telescope project', key = 'p' },
+                        -- { desc = ' Projects', group = 'Type', action = 'Telescope project', key = 'p' }, -- REMOVED
                         { desc = ' Recent Files', group = 'Constant', action = 'Telescope oldfiles', key = 'r' },
                         { desc = ' Config', group = 'Keyword', action = 'edit $MYVIMRC', key = 'c' },
                     },
                     packages = { enable = true },
-                    project = {
-                        enable = true,
-                        limit = 8,
-                        icon = '󰏓',
-                        label = ' Recent Projects',
-                        action = 'Telescope find_files cwd='
-                    },
+                    project = { enable = false }, -- Disabled as telescope-project is removed; re-enable if you use another project manager
                     mru = {
                         limit = 10,
                         icon = '󰋚',
@@ -318,27 +291,27 @@ local plugins = {
         end,
     },
 
-    { 'neovim/nvim-lspconfig',   event = { "BufReadPre", "BufNewFile" } },
-    { 'williamboman/mason.nvim', cmd = "Mason",                         opts = { ui = { border = "rounded" } } },
+    { 'neovim/nvim-lspconfig', event = { "BufReadPre", "BufNewFile" } },
+    { 'williamboman/mason.nvim', cmd = "Mason", opts = { ui = { border = "rounded" } } },
     'williamboman/mason-lspconfig.nvim',
-    'folke/neodev.nvim',
-    { 'j-hui/fidget.nvim', opts = {}, tag = "legacy" },
+    -- 'folke/neodev.nvim', -- REMOVED
+    -- { 'j-hui/fidget.nvim', opts = {}, tag = "legacy" }, -- REMOVED
 
     {
         'saghen/blink.cmp',
         lazy = false,
-        dependencies = 'rafamadriz/friendly-snippets',
+        -- dependencies = 'rafamadriz/friendly-snippets', -- REMOVED dependency
         version = 'v0.*',
         opts = {
             keymap = {
                 preset = 'default',
                 ['<CR>'] = { 'accept', 'fallback' },
-                ['<Tab>'] = { 'select_next', 'snippet_forward', 'fallback' },
-                ['<S-Tab>'] = { 'select_prev', 'snippet_backward', 'fallback' },
+                ['<Tab>'] = { 'select_next', 'fallback' }, -- snippet_forward removed
+                ['<S-Tab>'] = { 'select_prev', 'fallback' }, -- snippet_backward removed
                 ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
             },
             appearance = { use_nvim_cmp_as_default = true, nerd_font_variant = 'mono' },
-            sources = { default = { 'lsp', 'path', 'snippets', 'buffer' } },
+            sources = { default = { 'lsp', 'path', 'buffer' } }, -- 'snippets' removed
             completion = {
                 accept = { auto_brackets = { enabled = true } },
                 documentation = { auto_show = true, auto_show_delay_ms = 200 },
@@ -349,32 +322,14 @@ local plugins = {
         },
     },
 
-    {
-        'stevearc/conform.nvim',
-        event = "BufWritePre",
-        keys = {
-            { "<leader>cf", function() require("conform").format({ async = true, lsp_fallback = true }) end, mode = { "n", "v" }, desc = "Format buffer/selection" },
-        },
-        opts = {
-            formatters_by_ft = {
-                lua = { "stylua" },
-                c = { "clang_format" },
-                cpp = { "clang_format" },
-                python = { "black", "isort" },
-                bash = { "shfmt" },
-                json = { "prettier" },
-                yaml = { "prettier" },
-                markdown = { "prettier" },
-            },
-            format_on_save = { timeout_ms = 500, lsp_fallback = true },
-        },
-    },
+    -- { -- stevearc/conform.nvim REMOVED
+    -- },
 
     {
         'nvim-treesitter/nvim-treesitter',
         build = ':TSUpdate',
         event = { "BufReadPost", "BufNewFile" },
-        dependencies = { 'nvim-treesitter/nvim-treesitter-textobjects' },
+        -- dependencies = { 'nvim-treesitter/nvim-treesitter-textobjects' }, -- REMOVED dependency
         config = function()
             require('nvim-treesitter.configs').setup({
                 ensure_installed = { "bash", "c", "cpp", "html", "javascript", "json", "lua", "markdown",
@@ -390,21 +345,8 @@ local plugins = {
                         node_decremental = "<bs>",
                     },
                 },
-                textobjects = {
-                    select = {
-                        enable = true,
-                        lookahead = true,
-                        keymaps = {
-                            ["af"] = "@function.outer",
-                            ["if"] = "@function.inner",
-                            ["ac"] = "@class.outer",
-                            ["ic"] = "@class.inner",
-                            ["aP"] = "@parameter.outer",
-                            ["iP"] = "@parameter.inner",
-                            ["aC"] = "@comment.outer",
-                        },
-                    },
-                },
+                -- textobjects = { -- REMOVED
+                -- },
             })
         end,
     },
@@ -415,11 +357,13 @@ local plugins = {
         opts = {
             preset = "modern",
             spec = {
-                { "<leader>c", group = "Comment/Code Format" }, { "<leader>f", group = "Find/File/Fugitive" },
-                { "<leader>g", group = "Git/Gitsigns" }, { "<leader>h", group = "Git Hunks" },
+                { "<leader>c", group = "Comment" }, -- Code Format removed
+                { "<leader>f", group = "Find/File (Telescope)" },
+                { "<leader>g", group = "Git/Gitsigns/Telescope Git" },
+                { "<leader>h", group = "Git Hunks (Gitsigns)" },
                 { "<leader>l", group = "LSP/Lazy" }, { "<leader>q", group = "Quit/Session" },
-                { "<leader>w", group = "Windows" }, { "<leader>b", group = "Buffer/Breakpoint" },
-                { "<leader>t", group = "Toggle/Terminal" },
+                { "<leader>w", group = "Windows" }, { "<leader>b", group = "Buffer" }, -- Breakpoint removed
+                { "<leader>t", group = "Toggle/Terminal/Tabs" },
                 { "<leader>d", group = "Diagnostics/Definition (LSP)" },
             },
         },
@@ -430,14 +374,14 @@ local plugins = {
                 ["<leader>c"] = {
                     c = { function() require('Comment.api').toggle.linewise.current() end, "Toggle Comment Line" },
                     b = { function() require('Comment.api').toggle.blockwise.current() end, "Toggle Comment Block" },
-                    f = { function() require("conform").format({ async = true, lsp_fallback = true }) end, "Format Code" }
+                    -- f removed (format code)
                 }
             }, { mode = "n", prefix = "" })
             wk.register({
                 ["<leader>c"] = {
                     c = { function() require('Comment.api').toggle.linewise(vim.fn.visualmode()) end, "Toggle Comment Line (Visual)" },
                     b = { function() require('Comment.api').toggle.blockwise(vim.fn.visualmode()) end, "Toggle Comment Block (Visual)" },
-                    f = { function() require("conform").format({ async = true, lsp_fallback = true }) end, "Format Code (Visual)" }
+                    -- f removed
                 }
             }, { mode = "v", prefix = "" })
         end
@@ -447,10 +391,10 @@ local plugins = {
         'akinsho/toggleterm.nvim',
         version = "*",
         keys = {
-            { "<leader>tt", "<cmd>ToggleTerm<cr>",                      desc = "Toggle Terminal (Float)" },
-            { "<C-\\>",     "<cmd>ToggleTerm<cr>",                      desc = "Toggle Terminal (Float)" },
-            { "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Toggle Terminal (Horizontal)" },
-            { "<leader>tv", "<cmd>ToggleTerm direction=vertical<cr>",   desc = "Toggle Terminal (Vertical)" },
+            { "<leader>tt", "<cmd>ToggleTerm<cr>", desc = "Toggle Terminal (Float)" },
+            { "<C-\\>",      "<cmd>ToggleTerm<cr>", desc = "Toggle Terminal (Float)" },
+            -- { "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Toggle Terminal (Horizontal)" }, -- Less common
+            -- { "<leader>tv", "<cmd>ToggleTerm direction=vertical<cr>",   desc = "Toggle Terminal (Vertical)" }, -- Less common
         },
         opts = {
             direction = 'float',
@@ -481,7 +425,6 @@ require("lazy").setup(plugins, {
     checker = { enabled = true, notify = false, frequency = 3600 },
     change_detection = { enabled = true, notify = false },
     install = { missing = true, colorscheme = { "gruvbox" } },
-    -- rocks = { enabled = false }, -- To silence Luarocks warnings if not needed
 })
 
 local function setup_options()
@@ -495,9 +438,9 @@ local function setup_options()
 
     local undodir_path = vim.fn.stdpath("data") .. "/undodir"
     opt.undodir = undodir_path
-    -- if vim.fn.isdirectory(undodir_path) == 0 then
-    --     pcall(vim.fn.mkdir, undodir_path, "p")
-    -- end
+    if vim.fn.isdirectory(undodir_path) == 0 then
+        pcall(vim.fn.mkdir, undodir_path, "p")
+    end
 
     opt.updatetime = 250
     opt.timeoutlen = 300
@@ -646,12 +589,12 @@ end
 setup_diagnostics()
 
 local function setup_lsp()
-    require('neodev').setup()
+    -- require('neodev').setup() -- REMOVED
 
     local function get_capabilities()
         local capabilities = vim.lsp.protocol.make_client_capabilities()
         capabilities = require('blink.cmp').get_lsp_capabilities(capabilities)
-        capabilities.textDocument.completion.completionItem.snippetSupport = true
+        capabilities.textDocument.completion.completionItem.snippetSupport = true -- blink.cmp might handle this or ignore if no snippet engine
         return capabilities
     end
 
@@ -661,10 +604,8 @@ local function setup_lsp()
         end
 
         map('gD', vim.lsp.buf.declaration, "Go to Declaration")
-        -- map('gd', vim.lsp.buf.definition, "Go to Definition") -- REMOVED
-        map('\\d', vim.lsp.buf.definition, "Go to Definition")            -- This is <leader>d
-        map('<leader>D', vim.lsp.buf.definition, "Go to Definition")      -- Changed to also go to definition
-        map('<leader>dt', vim.lsp.buf.type_definition, "Type Definition") -- New mapping for Type Definition
+        map('<leader>d', vim.lsp.buf.definition, "Go to Definition")
+        map('<leader>dt', vim.lsp.buf.type_definition, "Type Definition")
 
         map('K', vim.lsp.buf.hover, "Hover Documentation")
         map('gi', vim.lsp.buf.implementation, "Go to Implementation")
@@ -678,24 +619,13 @@ local function setup_lsp()
         if client.supports_method("textDocument/formatting") then
             map("<leader>clf", function() vim.lsp.buf.format { async = true } end, "Format (LSP Fallback)")
         end
-
-        map('<leader>dli', function()
-            local clients = vim.lsp.get_active_clients({ bufnr = bufnr })
-            if vim.tbl_isempty(clients) then
-                vim.notify("No active LSP clients for this buffer.", vim.log.levels.WARN)
-                return
-            end
-            for _, c_info in pairs(clients) do
-                vim.notify(string.format("LSP Client: %s\nRoot: %s", c_info.name, c_info.config.root_dir or "Not found"),
-                    vim.log.levels.INFO)
-            end
-        end, "Show LSP Info")
+        -- map('<leader>dli', ..., "Show LSP Info") -- REMOVED (Less common)
     end
 
     require('mason-lspconfig').setup({
         ensure_installed = {
             'clangd',   -- C/C++
-            'pyright',  -- Python
+            'pyright',  -- Python (or pylsp if you prefer and install it)
             'bashls',   -- Bash
             'jsonls',   -- JSON
             'yamlls',   -- YAML
@@ -719,12 +649,12 @@ local function setup_lsp()
                             diagnostics = { globals = { 'vim' }, disable = { "missing-fields" } },
                             workspace = { checkThirdParty = false, library = vim.api.nvim_get_runtime_file("", true) },
                             telemetry = { enable = false },
-                            completion = { callSnippet = "Replace" }
+                            completion = { callSnippet = "Replace" } -- Might not work fully without snippet engine
                         },
                     },
                 })
             end,
-            ["pyright"] = function()
+            ["pyright"] = function() -- If using pylsp, you'd add a similar handler for it
                 require('lspconfig').pyright.setup({
                     capabilities = get_capabilities(),
                     on_attach = on_attach,
@@ -756,7 +686,6 @@ local function setup_keymaps()
     keymap("v", "<leader>y", "\"+y", { desc = "Yank selection to system clipboard" })
     keymap("n", "<leader>p", "\"+p", { desc = "Paste from system clipboard (after cursor)" })
     keymap("n", "<leader>P", "\"+P", { desc = "Paste from system clipboard (before cursor)" })
-    keymap("v", "<leader>p", "\"+p", { desc = "Paste from system clipboard (replace selection)" })
 
     keymap("n", "<C-h>", "<C-w>h", { desc = "Navigate window left" })
     keymap("n", "<C-j>", "<C-w>j", { desc = "Navigate window down" })
@@ -773,16 +702,13 @@ local function setup_keymaps()
     keymap("v", ">", ">gv", { desc = "Increase indent" })
 
     keymap("n", "<leader>ll", "<cmd>Lazy<cr>", { desc = "Lazy Plugin Manager" })
-    keymap("n", "<leader>li", "<cmd>Lazy install<cr>", { desc = "Lazy Install" })
     keymap("n", "<leader>lu", "<cmd>Lazy update<cr>", { desc = "Lazy Update" })
-    keymap("n", "<leader>lx", "<cmd>Lazy clean<cr>", { desc = "Lazy Clean" })
+    -- keymap("n", "<leader>li", "<cmd>Lazy install<cr>", { desc = "Lazy Install" }) -- REMOVED
+    -- keymap("n", "<leader>lx", "<cmd>Lazy clean<cr>", { desc = "Lazy Clean" }) -- REMOVED
     keymap("n", "<leader>lsync", "<cmd>Lazy sync<cr>", { desc = "Lazy Sync" })
 
-    keymap("n", "<leader>gs", "<cmd>Git<CR>", { desc = "Git status (Fugitive)" })
-    keymap("n", "<leader>gC", "<cmd>Git commit<CR>", { desc = "Git commit (Fugitive)" })
-    keymap("n", "<leader>ga", "<cmd>Git add .<CR>", { desc = "Git add all (Fugitive)" })
-    keymap("n", "<leader>gp", "<cmd>Git push<CR>", { desc = "Git push (Fugitive)" })
-    keymap("n", "<leader>gl", "<cmd>Git pull<CR>", { desc = "Git pull (Fugitive)" })
+    -- Fugitive keymaps REMOVED
+    -- <leader>gs, <leader>gC, <leader>ga, <leader>gp, <leader>gl
 
     keymap("n", "<leader>bd", function()
         local current_buf = vim.api.nvim_get_current_buf()
@@ -799,78 +725,22 @@ local function setup_keymaps()
             vim.cmd("bdelete")
         end
     end, { desc = "Delete current buffer" })
-    keymap("n", "<leader>bda", function()
-        local current_buf_nr = vim.api.nvim_get_current_buf()
-        local bufs = vim.api.nvim_list_bufs()
-        local modified_count = 0
-        for _, b in ipairs(bufs) do
-            if b ~= current_buf_nr and vim.api.nvim_buf_is_loaded(b) and vim.bo[b].modified then
-                modified_count = modified_count + 1
-            end
-        end
+    -- keymap("n", "<leader>bda", ...) -- REMOVED (Delete all other buffers)
 
-        if modified_count > 0 then
-            local choice = vim.fn.confirm(modified_count .. " other buffer(s) modified. Save all others?",
-                "&Yes\n&No\n&Cancel", 1, "Warning")
-            if choice == 1 then
-                for _, b in ipairs(bufs) do
-                    if b ~= current_buf_nr and vim.bo[b].modified then
-                        vim.cmd(
-                            "silent! writebuf " .. b)
-                    end
-                end
-            elseif choice == 3 then
-                return
-            end
-        end
-
-        for _, b in ipairs(bufs) do
-            if b ~= current_buf_nr and vim.api.nvim_buf_is_loaded(b) then
-                vim.cmd("silent! bdelete! " .. b)
-            end
-        end
-    end, { desc = "Delete all other buffers" })
-
-    keymap("n", "<leader>bp", "<cmd>bprevious<cr>", { desc = "Previous Buffer" })
-    keymap("n", "<leader>bn", "<cmd>bnext<cr>", { desc = "Next Buffer" })
-    keymap("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" })
+    keymap("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" }) -- Kept <S-h>/<S-l> set
     keymap("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
+    -- keymap("n", "<leader>bp", "<cmd>bprevious<cr>", { desc = "Previous Buffer" }) -- REMOVED (duplicate)
+    -- keymap("n", "<leader>bn", "<cmd>bnext<cr>", { desc = "Next Buffer" }) -- REMOVED (duplicate)
 
-    local function toggle_python_breakpoint()
-        local current_line_idx = vim.api.nvim_win_get_cursor(0)[1]
-        local current_line_content = vim.api.nvim_get_current_line()
-        local current_indent = current_line_content:match('^%s*')
-        local breakpoint_text = "breakpoint()"
-        local breakpoint_comment = "# Debug breakpoint"
-        local full_breakpoint_line_pattern = "^%s*" ..
-            vim.pesc(breakpoint_text) .. "%s*" .. vim.pesc(breakpoint_comment) .. "%s*$"
-        local minimal_breakpoint_line_pattern = "^%s*" .. vim.pesc(breakpoint_text) .. "%s*$"
-
-        local function is_breakpoint_line(line_content_str)
-            return line_content_str:match(full_breakpoint_line_pattern) or
-                line_content_str:match(minimal_breakpoint_line_pattern)
-        end
-
-        if current_line_idx > 1 then
-            local line_above_content = vim.api.nvim_buf_get_lines(0, current_line_idx - 2, current_line_idx - 1, false)
-                [1]
-            if line_above_content and is_breakpoint_line(line_above_content) then
-                vim.api.nvim_buf_set_lines(0, current_line_idx - 2, current_line_idx - 1, false, {})
-                return
-            end
-        end
-        local new_breakpoint_line = current_indent .. breakpoint_text .. "  " .. breakpoint_comment
-        vim.api.nvim_buf_set_lines(0, current_line_idx - 1, current_line_idx - 1, false, { new_breakpoint_line })
-    end
-    keymap('n', '<leader>bb', toggle_python_breakpoint, { desc = "Toggle Python Breakpoint" })
-    keymap('n', '<F9>', toggle_python_breakpoint, { desc = "Toggle Python Breakpoint" })
+    -- Python breakpoint toggle keymaps REMOVED
+    -- <leader>bb, <F9>
 
     keymap("n", "<leader>de", function() vim.diagnostic.open_float(nil, { scope = "cursor", border = 'rounded' }) end,
         { desc = "Show diagnostics at cursor" })
     keymap("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
     keymap("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
-    keymap("n", "<leader>dp", vim.diagnostic.goto_prev, { desc = "Previous diagnostic (alias)" })
-    keymap("n", "<leader>dn", vim.diagnostic.goto_next, { desc = "Next diagnostic (alias)" })
+    -- keymap("n", "<leader>dp", vim.diagnostic.goto_prev, { desc = "Previous diagnostic (alias)" }) -- REMOVED
+    -- keymap("n", "<leader>dn", vim.diagnostic.goto_next, { desc = "Next diagnostic (alias)" }) -- REMOVED
     keymap("n", "<leader>dq", function() vim.diagnostic.setqflist() end, { desc = "Diagnostics to Quickfix list" })
 
     keymap("t", "<esc><esc>", "<c-\\><c-n>", { desc = "Terminal: Enter Normal Mode" })
