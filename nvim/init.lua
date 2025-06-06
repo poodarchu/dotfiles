@@ -55,7 +55,6 @@ local plugins = {
 		keys = {
 			{ "<F3>", "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
 			{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
-			{ "-", "<cmd>Neotree reveal<cr>", desc = "Reveal current file in NeoTree" },
 		},
 		opts = {
 			close_if_last_window = true,
@@ -99,28 +98,26 @@ local plugins = {
 
 				map("n", "]h", function()
 					if vim.wo.diff then
-						return "]c"
+						vim.cmd("normal! ]c")
+						return
 					end
 					vim.schedule(function()
 						gs.next_hunk()
 					end)
-					return "<Ignore>"
-				end, { expr = true, desc = "Next Hunk" })
+				end, { desc = "Next Hunk" })
 
 				map("n", "[h", function()
 					if vim.wo.diff then
-						return "[c"
+						vim.cmd("normal! [c")
+						return
 					end
 					vim.schedule(function()
 						gs.prev_hunk()
 					end)
-					return "<Ignore>"
-				end, { expr = true, desc = "Previous Hunk" })
+				end, { desc = "Previous Hunk" })
 
 				map("n", "<leader>hs", gs.stage_hunk, { desc = "Stage hunk" })
 				map("n", "<leader>hr", gs.reset_hunk, { desc = "Reset hunk" })
-				map("n", "<leader>hS", gs.stage_buffer, { desc = "Stage buffer" })
-				map("n", "<leader>hR", gs.reset_buffer, { desc = "Reset buffer" })
 				map("n", "<leader>hp", gs.preview_hunk, { desc = "Preview hunk" })
 				map("n", "<leader>hb", function()
 					gs.blame_line({ full = true })
@@ -180,6 +177,20 @@ local plugins = {
 			}) do
 				vim.api.nvim_set_hl(0, group, { fg = colors.green })
 			end
+
+			-- 自动补全颜色配置
+			vim.api.nvim_set_hl(0, "BlinkCmpMenu", { bg = "#282828", fg = "#ebdbb2" })
+			vim.api.nvim_set_hl(0, "BlinkCmpMenuBorder", { bg = "#282828", fg = "#504945" })
+			vim.api.nvim_set_hl(0, "BlinkCmpMenuSelection", { bg = "#3c3836", fg = "#fbf1c7" })
+			vim.api.nvim_set_hl(0, "BlinkCmpLabel", { fg = "#ebdbb2" })
+			vim.api.nvim_set_hl(0, "BlinkCmpLabelMatch", { fg = "#fe8019", bold = true })
+			vim.api.nvim_set_hl(0, "BlinkCmpKind", { fg = "#83a598" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindText", { fg = "#b8bb26" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindMethod", { fg = "#fabd2f" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindFunction", { fg = "#fabd2f" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindVariable", { fg = "#8ec07c" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindKeyword", { fg = "#fb4934" })
+			vim.api.nvim_set_hl(0, "BlinkCmpGhostText", { fg = "#665c54", italic = true })
 		end,
 	},
 
@@ -199,176 +210,8 @@ local plugins = {
 		event = "InsertEnter",
 		opts = {
 			check_ts = true,
-			ts_config = { lua = { "string" }, javascript = { "template_string" }, java = false },
+			ts_config = { lua = { "string" } },
 		},
-	},
-
-	{
-		"nvim-telescope/telescope.nvim",
-		dependencies = {
-			"nvim-lua/plenary.nvim",
-			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
-			"nvim-telescope/telescope-ui-select.nvim",
-		},
-		cmd = "Telescope",
-		keys = {
-			{
-				"<leader>ff",
-				function()
-					require("telescope.builtin").find_files()
-				end,
-				desc = "Find Files",
-			},
-			{
-				"<leader>fg",
-				function()
-					require("telescope.builtin").live_grep()
-				end,
-				desc = "Live Grep",
-			},
-			{
-				"<leader>fw",
-				function()
-					require("telescope.builtin").grep_string()
-				end,
-				desc = "Grep Word",
-			},
-			{
-				"<leader>fb",
-				function()
-					require("telescope.builtin").buffers()
-				end,
-				desc = "Buffers",
-			},
-			{
-				"<leader>fh",
-				function()
-					require("telescope.builtin").help_tags()
-				end,
-				desc = "Help Tags",
-			},
-			{
-				"<leader>fr",
-				function()
-					require("telescope.builtin").oldfiles()
-				end,
-				desc = "Recent Files",
-			},
-			{
-				"<leader>\\f",
-				function()
-					require("telescope.builtin").git_files()
-				end,
-				desc = "Git Files",
-			},
-			{
-				"<leader>\\b",
-				function()
-					require("telescope.builtin").git_branches()
-				end,
-				desc = "Git Branches",
-			},
-			{
-				"<leader>\\c",
-				function()
-					require("telescope.builtin").git_commits()
-				end,
-				desc = "Git Commits",
-			},
-			{
-				"<leader>\\s",
-				function()
-					require("telescope.builtin").git_status()
-				end,
-				desc = "Git Status",
-			},
-			{
-				"<leader>ls",
-				function()
-					require("telescope.builtin").lsp_document_symbols()
-				end,
-				desc = "Document Symbols",
-			},
-			{
-				"<leader>lS",
-				function()
-					require("telescope.builtin").lsp_workspace_symbols()
-				end,
-				desc = "Workspace Symbols",
-			},
-			{
-				"<leader>ld",
-				function()
-					require("telescope.builtin").diagnostics()
-				end,
-				desc = "Diagnostics (List)",
-			},
-			{
-				"<leader>f/",
-				function()
-					require("telescope.builtin").current_buffer_fuzzy_find()
-				end,
-				desc = "Buffer Fuzzy Find",
-			},
-		},
-		config = function()
-			local telescope = require("telescope")
-			local actions = require("telescope.actions")
-
-			telescope.setup({
-				defaults = {
-					prompt_prefix = "  ",
-					selection_caret = " ",
-					sorting_strategy = "ascending",
-					layout_config = { horizontal = { prompt_position = "top" }, preview_width = 0.55 },
-					file_ignore_patterns = { "node_modules", "__pycache__", ".git/", "*.pyc", "*.pyo", "venv", ".venv" },
-					mappings = {
-						i = {
-							["<C-j>"] = actions.move_selection_next,
-							["<C-k>"] = actions.move_selection_previous,
-							["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
-						},
-					},
-				},
-				pickers = {
-					find_files = {
-						hidden = true,
-						find_command = vim.fn.executable("rg") == 1 and {
-							"rg",
-							"--files",
-							"--hidden",
-							"--glob",
-							"!**/.git/*",
-							"--glob",
-							"!**/venv/*",
-							"--glob",
-							"!**/.venv/*",
-						} or nil,
-					},
-					live_grep = {
-						additional_args = function()
-							return {
-								"--hidden",
-								"--glob",
-								"!**/.git/*",
-								"--glob",
-								"!**/venv/*",
-								"--glob",
-								"!**/.venv/*",
-							}
-						end,
-					},
-				},
-				extensions = {
-					fzf = { fuzzy = true, override_generic_sorter = true, override_file_sorter = true },
-					["ui-select"] = { theme = "ivy" },
-				},
-			})
-
-			for _, ext in ipairs({ "fzf", "ui-select" }) do
-				pcall(telescope.load_extension, ext)
-			end
-		end,
 	},
 
 	-- Toggle 注释插件
@@ -376,8 +219,10 @@ local plugins = {
 		"numToStr/Comment.nvim",
 		event = { "BufReadPost", "BufNewFile" },
 		keys = {
-			{ "<C-/>", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
-			{ "<C-/>", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
+			{ "<leader>cc", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
+			{ "<leader>cc", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
+			{ "<leader><C-space>", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
+			{ "<leader><C-space>", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
 		},
 		config = function()
 			require("Comment").setup()
@@ -404,9 +249,6 @@ local plugins = {
 					},
 					shortcut = {
 						{ desc = "󰊳 Update Plugins", group = "Function", action = "Lazy update", key = "u" },
-						{ desc = " Find Files", group = "Identifier", action = "Telescope find_files", key = "f" },
-						{ desc = " Live Grep", group = "String", action = "Telescope live_grep", key = "g" },
-						{ desc = " Recent Files", group = "Constant", action = "Telescope oldfiles", key = "r" },
 						{ desc = " Config", group = "Keyword", action = "edit $MYVIMRC", key = "c" },
 					},
 					packages = { enable = true },
@@ -417,7 +259,7 @@ local plugins = {
 		end,
 	},
 
-	-- LSP Setup
+	-- LSP Setup (仅支持 C++ 和 Python)
 	{ "neovim/nvim-lspconfig", event = { "BufReadPre", "BufNewFile" } },
 	{
 		"williamboman/mason.nvim",
@@ -430,12 +272,9 @@ local plugins = {
 			local ensure_installed = {
 				"clangd",
 				"pyright",
-				"stylua",
 				"black",
 				"isort",
 				"clang-format",
-				"prettier",
-				"shfmt",
 			}
 
 			local mr = require("mason-registry")
@@ -461,51 +300,46 @@ local plugins = {
 			keymap = {
 				preset = "default",
 				["<CR>"] = { "accept", "fallback" },
-				["<Right>"] = { "accept", "fallback" },  -- 添加右箭头键接受补全
 				["<Tab>"] = { "select_next", "fallback" },
 				["<S-Tab>"] = { "select_prev", "fallback" },
 				["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
 			},
-			appearance = { use_nvim_cmp_as_default = true, nerd_font_variant = "mono" },
+			appearance = {
+				use_nvim_cmp_as_default = true,
+				nerd_font_variant = "mono",
+			},
 			sources = { default = { "lsp", "path", "buffer" } },
 			completion = {
 				accept = { auto_brackets = { enabled = true } },
 				documentation = { auto_show = true, auto_show_delay_ms = 200 },
 				ghost_text = { enabled = true },
-				menu = { border = "rounded", scrolloff = 2, scrollbar = true },
+				menu = {
+					border = "rounded",
+					scrolloff = 2,
+					scrollbar = true,
+					draw = {
+						columns = {
+							{ "label", "label_description", gap = 1 },
+							{ "kind_icon", "kind", gap = 1 },
+						},
+					},
+				},
 			},
 			signature = { enabled = true, window = { border = "rounded" } },
 		},
 	},
 
-	-- 代码格式化 (关闭自动保存格式化)
+	-- 代码格式化 (仅 C++ 和 Python)
 	{
 		"stevearc/conform.nvim",
 		event = "VeryLazy",
 		cmd = { "ConformInfo" },
 		opts = {
 			formatters_by_ft = {
-				lua = { "stylua" },
 				python = { "isort", "black" },
 				c = { "clang-format" },
 				cpp = { "clang-format" },
-				javascript = { "prettier" },
-				typescript = { "prettier" },
-				tsx = { "prettier" },
-				html = { "prettier" },
-				css = { "prettier" },
-				scss = { "prettier" },
-				json = { "prettier" },
-				yaml = { "prettier" },
-				markdown = { "prettier" },
-				bash = { "shfmt" },
-				sh = { "shfmt" },
 			},
-			-- 禁用自动保存格式化
-			-- format_on_save = {
-			-- 	timeout_ms = 700,
-			-- 	lsp_fallback = true,
-			-- },
 		},
 		init = function()
 			vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
@@ -527,34 +361,16 @@ local plugins = {
 		config = function()
 			require("nvim-treesitter.configs").setup({
 				ensure_installed = {
-					"bash",
 					"c",
 					"cpp",
-					"html",
-					"javascript",
-					"json",
-					"lua",
-					"markdown",
 					"python",
-					"query",
-					"regex",
-					"tsx",
-					"typescript",
+					"lua",
 					"vim",
 					"vimdoc",
-					"yaml",
 				},
 				auto_install = true,
 				highlight = { enable = true, additional_vim_regex_highlighting = false },
 				indent = { enable = true },
-				incremental_selection = {
-					enable = true,
-					keymaps = {
-						init_selection = "<C-space>",
-						node_incremental = "<C-space>",
-						node_decremental = "<bs>",
-					},
-				},
 			})
 		end,
 	},
@@ -565,34 +381,16 @@ local plugins = {
 		opts = {
 			preset = "modern",
 			spec = {
-				{ "<leader>f", group = "Find/File (Telescope)" },
-				{ "<leader>\\", group = "Git (Telescope)" },
 				{ "<leader>h", group = "Git Hunks (Gitsigns)" },
 				{ "<leader>l", group = "LSP/Lazy" },
-				{ "<leader>q", group = "Quit/Session" },
-				{ "<leader>w", group = "Windows" },
-				{ "<leader>b", group = "Buffer" },
-				{ "<leader>t", group = "Toggle/Terminal/Tabs" },
+				{ "<leader>b", group = "Buffer/Breakpoint" },
+				{ "<leader>c", group = "Code/Comment" },
 				{ "<leader>d", group = "Diagnostics/Definition (LSP)" },
 			},
 		},
 		config = function(_, opts)
 			require("which-key").setup(opts)
 		end,
-	},
-
-	{
-		"akinsho/toggleterm.nvim",
-		version = "*",
-		keys = {
-			{ "<leader>tt", "<cmd>ToggleTerm<cr>", desc = "Toggle Terminal (Float)" },
-			{ "<C-\\>", "<cmd>ToggleTerm<cr>", desc = "Toggle Terminal (Float)" },
-		},
-		opts = {
-			direction = "float",
-			float_opts = { border = "curved" },
-			open_mapping = [[<c-\>]],
-		},
 	},
 
 	{
@@ -737,14 +535,11 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 自动删除行末空格
+	-- 自动删除行末空格 (仅针对 C++ 和 Python)
 	autocmd("BufWritePre", {
 		group = augroup("AutoRemoveTrailingSpaces", { clear = true }),
-		pattern = "*",
+		pattern = { "*.cpp", "*.cc", "*.cxx", "*.c", "*.h", "*.hpp", "*.py" },
 		callback = function()
-			if vim.tbl_contains({ "markdown", "diff", "gitcommit" }, vim.bo.filetype) then
-				return
-			end
 			local save_cursor = vim.fn.getpos(".")
 			local save_winsize = vim.fn.winsaveview()
 			pcall(function()
@@ -755,10 +550,10 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 自动显示诊断
+	-- 自动显示诊断 (优化版本)
 	autocmd("CursorHold", {
 		group = augroup("AutoShowDiagnosticsOnCursorHold", { clear = true }),
-		pattern = "*",
+		pattern = { "*.cpp", "*.cc", "*.cxx", "*.c", "*.h", "*.hpp", "*.py" },
 		callback = function()
 			local current_buf = vim.api.nvim_get_current_buf()
 			local cursor_pos = vim.api.nvim_win_get_cursor(0)
@@ -774,6 +569,18 @@ local function setup_autocmds()
 					scope = "line",
 					focusable = false,
 				})
+			end
+		end,
+	})
+
+	-- 打开文件夹时自动启动 neo-tree
+	autocmd("VimEnter", {
+		group = augroup("AutoOpenNeoTree", { clear = true }),
+		callback = function()
+			local args = vim.fn.argv()
+			if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
+				vim.cmd("cd " .. vim.fn.fnameescape(args[1]))
+				vim.cmd("Neotree show")
 			end
 		end,
 	})
@@ -811,7 +618,7 @@ local function setup_diagnostics()
 	})
 end
 
--- LSP 配置
+-- LSP 配置 (仅 C++ 和 Python)
 local function setup_lsp()
 	local function get_capabilities()
 		local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -825,15 +632,9 @@ local function setup_lsp()
 			vim.keymap.set("n", keys, func, { buffer = bufnr, noremap = true, silent = true, desc = "LSP: " .. desc })
 		end
 
-		-- LSP 跳转快捷键改为 Ctrl 开头
+		-- LSP 跳转快捷键
 		map("<C-]>", vim.lsp.buf.definition, "Go to Definition")
-		map("<C-w>]", function()
-			vim.cmd("split | lua vim.lsp.buf.definition()")
-		end, "Go to Definition (Split)")
-		map("<C-w><C-]>", function()
-			vim.cmd("vsplit | lua vim.lsp.buf.definition()")
-		end, "Go to Definition (Vsplit)")
-		map("<C-t>", "<C-o>", "Jump back")
+		map("gd", vim.lsp.buf.definition, "Go to Definition")
 		map("<leader>dt", vim.lsp.buf.type_definition, "Type Definition")
 		map("<leader>di", vim.lsp.buf.implementation, "Go to Implementation")
 		map("<leader>dr", vim.lsp.buf.references, "Find References")
@@ -841,7 +642,7 @@ local function setup_lsp()
 
 		map("K", vim.lsp.buf.hover, "Hover Documentation")
 		map("<leader>cr", vim.lsp.buf.rename, "Rename Symbol")
-		map("<C-k>", vim.lsp.buf.signature_help, "Signature Help")
+		map("gK", vim.lsp.buf.signature_help, "Signature Help")
 
 		vim.keymap.set(
 			{ "n", "v" },
@@ -857,7 +658,13 @@ local function setup_lsp()
 		end
 	end
 
-	require("mason-lspconfig").setup({
+	local ok, mason_lspconfig = pcall(require, "mason-lspconfig")
+	if not ok then
+		vim.notify("mason-lspconfig not found", vim.log.levels.ERROR)
+		return
+	end
+
+	mason_lspconfig.setup({
 		ensure_installed = { "clangd", "pyright" },
 		handlers = {
 			function(server_name)
@@ -907,7 +714,7 @@ local function setup_lsp()
 	})
 end
 
--- Breakpoint 功能
+-- Breakpoint 功能 (仅 C++ 和 Python)
 local function setup_breakpoint()
 	-- 插入 breakpoint 函数
 	local function insert_breakpoint()
@@ -978,7 +785,7 @@ local function setup_breakpoint()
 	vim.keymap.set("n", "<leader>cb", remove_all_breakpoints, { desc = "Remove all breakpoints" })
 end
 
--- 键位映射配置
+-- 键位映射配置 (精简版)
 local function setup_keymaps()
 	local keymap = vim.keymap.set
 
@@ -996,31 +803,20 @@ local function setup_keymaps()
 		{ expr = true, silent = true, desc = "Move up (visual lines)" }
 	)
 
-	-- 系统剪贴板
-	keymap("n", "<leader>y", '"+y', { desc = "Yank to system clipboard" })
-	keymap("v", "<leader>y", '"+y', { desc = "Yank selection to system clipboard" })
-	keymap("n", "<leader>p", '"+p', { desc = "Paste from system clipboard (after cursor)" })
-	keymap("n", "<leader>P", '"+P', { desc = "Paste from system clipboard (before cursor)" })
-
-	-- 窗口导航
-	keymap("n", "<C-h>", "<C-w>h", { desc = "Navigate window left" })
-	keymap("n", "<C-j>", "<C-w>j", { desc = "Navigate window down" })
-	keymap("n", "<C-k>", "<C-w>k", { desc = "Navigate window up" })
-	keymap("n", "<C-l>", "<C-w>l", { desc = "Navigate window right" })
-	keymap("n", "<leader>wv", "<C-w>v", { desc = "Split window vertically" })
-	keymap("n", "<leader>ws", "<C-w>s", { desc = "Split window horizontally" })
-	keymap("n", "<leader>wc", "<cmd>close<CR>", { desc = "Close current window" })
-	keymap("n", "<leader>wo", "<C-w>o", { desc = "Close other windows" })
-
 	-- 基础编辑
 	keymap({ "i", "n" }, "<esc>", "<cmd>noh<cr><esc>", { desc = "Clear search highlight" })
 	keymap({ "i", "x", "n", "s" }, "<C-s>", "<cmd>write<CR><esc>", { desc = "Save file" })
 	keymap("v", "<", "<gv", { desc = "Decrease indent" })
 	keymap("v", ">", ">gv", { desc = "Increase indent" })
 
-	-- Lazy 插件管理
-	keymap("n", "<leader>ll", "<cmd>Lazy<cr>", { desc = "Lazy Plugin Manager" })
-	keymap("n", "<leader>lu", "<cmd>Lazy update<cr>", { desc = "Lazy Update Plugins" })
+	-- 窗口导航
+	keymap("n", "<C-h>", "<C-w>h", { desc = "Navigate window left" })
+	keymap("n", "<C-j>", "<C-w>j", { desc = "Navigate window down" })
+	keymap("n", "<C-l>", "<C-w>l", { desc = "Navigate window right" })
+
+	-- 缓冲区导航
+	keymap("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" })
+	keymap("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
 
 	-- 缓冲区管理
 	keymap("n", "<leader>bd", function()
@@ -1039,45 +835,15 @@ local function setup_keymaps()
 		end
 	end, { desc = "Delete current buffer (confirm if modified)" })
 
-	keymap("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" })
-	keymap("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
-
 	-- 诊断
 	keymap("n", "<leader>de", function()
 		vim.diagnostic.open_float(nil, { scope = "cursor", border = "rounded", focusable = true })
 	end, { desc = "Show diagnostics at cursor" })
 	keymap("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
 	keymap("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
-	keymap("n", "<leader>dq", function()
-		vim.diagnostic.setqflist()
-	end, { desc = "Diagnostics to Quickfix list" })
 
-	-- 终端
-	keymap("t", "<esc><esc>", "<c-\\><c-n>", { desc = "Terminal: Enter Normal Mode" })
-
-	-- 退出
-	keymap("n", "<leader>qq", function()
-		local buffers = vim.api.nvim_list_bufs()
-		local modified_buffers_info = {}
-		for _, buf in ipairs(buffers) do
-			if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].modified then
-				table.insert(modified_buffers_info, ("  - %s"):format(vim.api.nvim_buf_get_name(buf) or "[No Name]"))
-			end
-		end
-		if #modified_buffers_info > 0 then
-			local msg = "Unsaved changes in:\n" .. table.concat(modified_buffers_info, "\n") .. "\n\nSave all and quit?"
-			local choice = vim.fn.confirm(msg, "&Yes\n&No (Quit without saving)\n&Cancel", 1, "Warning")
-			if choice == 1 then
-				vim.cmd("wall")
-				vim.cmd("qa")
-			elseif choice == 2 then
-				vim.cmd("qa!")
-			end
-		else
-			vim.cmd("qa")
-		end
-	end, { desc = "Quit all (confirm if modified)" })
-	keymap("n", "<leader>q!", "<cmd>qa!<CR>", { desc = "Quit all without saving" })
+	-- Lazy 插件管理
+	keymap("n", "<leader>ll", "<cmd>Lazy<cr>", { desc = "Lazy Plugin Manager" })
 
 	-- 搜索结果居中
 	keymap("n", "n", "nzzzv", { desc = "Next search result (centered)" })
