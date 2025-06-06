@@ -46,6 +46,89 @@ vim.opt.rtp:prepend(lazypath)
 
 -- 插件配置
 local plugins = {
+	-- Telescope 文件搜索
+	{
+		"nvim-telescope/telescope.nvim",
+		tag = "0.1.8",
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+			"nvim-telescope/telescope-ui-select.nvim",
+		},
+		cmd = "Telescope",
+		keys = {
+			{ "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Find Files" },
+			{ "<leader>fg", "<cmd>Telescope live_grep<cr>", desc = "Live Grep" },
+			{ "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Buffers" },
+			{ "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Help Tags" },
+			{ "<leader>fr", "<cmd>Telescope oldfiles<cr>", desc = "Recent Files" },
+			{ "<leader>fw", "<cmd>Telescope grep_string<cr>", desc = "Grep Word" },
+			{ "<leader>f/", "<cmd>Telescope current_buffer_fuzzy_find<cr>", desc = "Buffer Fuzzy Find" },
+		},
+		config = function()
+			local telescope = require("telescope")
+			local actions = require("telescope.actions")
+
+			telescope.setup({
+				defaults = {
+					prompt_prefix = "  ",
+					selection_caret = " ",
+					sorting_strategy = "ascending",
+					layout_config = {
+						horizontal = { prompt_position = "top" },
+						preview_width = 0.55,
+					},
+					file_ignore_patterns = { 
+						"node_modules", "__pycache__", ".git/", 
+						"*.pyc", "*.pyo", "venv", ".venv" 
+					},
+					mappings = {
+						i = {
+							["<C-j>"] = actions.move_selection_next,
+							["<C-k>"] = actions.move_selection_previous,
+							["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+						},
+					},
+				},
+				pickers = {
+					find_files = {
+						hidden = true,
+						find_command = {
+							"rg", "--files", "--hidden", 
+							"--glob", "!**/.git/*",
+							"--glob", "!**/venv/*",
+							"--glob", "!**/.venv/*",
+						},
+					},
+					live_grep = {
+						additional_args = function()
+							return {
+								"--hidden",
+								"--glob", "!**/.git/*",
+								"--glob", "!**/venv/*",
+								"--glob", "!**/.venv/*",
+							}
+						end,
+					},
+				},
+				extensions = {
+					fzf = {
+						fuzzy = true,
+						override_generic_sorter = true,
+						override_file_sorter = true,
+					},
+					["ui-select"] = {
+						require("telescope.themes").get_dropdown(),
+					},
+				},
+			})
+
+			-- 加载扩展
+			pcall(telescope.load_extension, "fzf")
+			pcall(telescope.load_extension, "ui-select")
+		end,
+	},
+
 	-- 文件管理器
 	{
 		"nvim-neo-tree/neo-tree.nvim",
@@ -57,7 +140,7 @@ local plugins = {
 			{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
 		},
 		opts = {
-			close_if_last_window = true,  -- 修改1：启用自动关闭最后窗口
+			close_if_last_window = true,
 			enable_git_status = true,
 			popup_border_style = "rounded",
 			window = { 
@@ -294,17 +377,12 @@ local plugins = {
                         { desc = '󰊳 Update Plugins', group = 'Function', action = 'Lazy update', key = 'u' },
                         { desc = ' Find Files', group = 'Identifier', action = 'Telescope find_files', key = 'f' },
                         { desc = ' Live Grep', group = 'String', action = 'Telescope live_grep', key = 'g' },
-                        { desc = ' Projects', group = 'Type', action = 'Telescope project', key = 'p' },
                         { desc = ' Recent Files', group = 'Constant', action = 'Telescope oldfiles', key = 'r' },
                         { desc = ' Config', group = 'Keyword', action = 'edit $MYVIMRC', key = 'c' },
                     },
                     packages = { enable = true },
                     project = {
-                        enable = true,
-                        limit = 8,
-                        icon = '󰏓',
-                        label = ' Recent Projects',
-                        action = 'Telescope find_files cwd='
+                        enable = false,  -- 禁用项目功能避免错误
                     },
                     mru = {
                         limit = 10,
@@ -454,6 +532,7 @@ local plugins = {
 		opts = {
 			preset = "modern",
 			spec = {
+				{ "<leader>f", group = "Find/File (Telescope)" },
 				{ "<leader>h", group = "Git Hunks (Gitsigns)" },
 				{ "<leader>l", group = "LSP/Lazy" },
 				{ "<leader>b", group = "Buffer/Breakpoint" },
@@ -633,8 +712,7 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 修改1：移除自动弹出诊断窗口的功能
-	-- 原来的 CursorHold 自动显示诊断已被移除
+	-- 禁用自动弹出诊断窗口（之前的 CursorHold 已移除）
 
 	-- 打开文件夹时自动启动 neo-tree 并聚焦
 	autocmd("VimEnter", {
@@ -650,7 +728,7 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 修改1：优化文件打开时的布局调整，确保正确关闭 neo-tree
+	-- 修复文件打开时的布局调整，确保正确关闭 neo-tree
 	autocmd("BufEnter", {
 		group = augroup("AdjustLayoutOnFileOpen", { clear = true }),
 		callback = function()
@@ -678,7 +756,7 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 修改1：添加智能退出功能，当只剩 neo-tree 时自动退出
+	-- 添加智能退出功能，当只剩 neo-tree 时自动退出
 	autocmd("BufEnter", {
 		group = augroup("SmartQuit", { clear = true }),
 		callback = function()
@@ -996,7 +1074,7 @@ local function setup_keymaps()
 	keymap("n", "n", "nzzzv", { desc = "Next search result (centered)" })
 	keymap("n", "N", "Nzzzv", { desc = "Previous search result (centered)" })
 
-	-- 修改2：手动显示诊断信息的键位映射（全局）
+	-- 手动显示诊断信息的键位映射（全局）
 	keymap("n", "<leader>dh", function()
 		vim.diagnostic.open_float(nil, { scope = "cursor", border = "rounded", focusable = true })
 	end, { desc = "Show diagnostics at cursor" })
