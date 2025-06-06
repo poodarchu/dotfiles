@@ -180,6 +180,21 @@ local plugins = {
 			}) do
 				vim.api.nvim_set_hl(0, group, { fg = colors.green })
 			end
+
+			-- BEGIN: 针对 BlinkCmp* 的颜色高亮设置 (从配置 B 添加)
+			vim.api.nvim_set_hl(0, "BlinkCmpMenu", { bg = "#282828", fg = "#ebdbb2" })
+			vim.api.nvim_set_hl(0, "BlinkCmpMenuBorder", { bg = "#282828", fg = "#504945" })
+			vim.api.nvim_set_hl(0, "BlinkCmpMenuSelection", { bg = "#3c3836", fg = "#fbf1c7" })
+			vim.api.nvim_set_hl(0, "BlinkCmpLabel", { fg = "#ebdbb2" })
+			vim.api.nvim_set_hl(0, "BlinkCmpLabelMatch", { fg = "#fe8019", bold = true })
+			vim.api.nvim_set_hl(0, "BlinkCmpKind", { fg = "#83a598" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindText", { fg = "#b8bb26" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindMethod", { fg = "#fabd2f" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindFunction", { fg = "#fabd2f" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindVariable", { fg = "#8ec07c" })
+			vim.api.nvim_set_hl(0, "BlinkCmpKindKeyword", { fg = "#fb4934" })
+			vim.api.nvim_set_hl(0, "BlinkCmpGhostText", { fg = "#665c54", italic = true })
+			-- END: 针对 BlinkCmp* 的颜色高亮设置
 		end,
 	},
 
@@ -375,10 +390,14 @@ local plugins = {
 	{
 		"numToStr/Comment.nvim",
 		event = { "BufReadPost", "BufNewFile" },
+		-- BEGIN: 修改 Comment.nvim 快捷键 (从配置 B 添加)
 		keys = {
-			{ "<C-/>", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
-			{ "<C-/>", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
+			{ "<leader>cc", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
+			{ "<leader>cc", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
+			{ "<leader>c<space>", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
+			{ "<leader>c<space>", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
 		},
+		-- END: 修改 Comment.nvim 快捷键
 		config = function()
 			require("Comment").setup()
 		end,
@@ -393,14 +412,14 @@ local plugins = {
                 theme = 'hyper',
                 config = {
                     header = {
-                        "██████╗ ███████╗███╗   ██╗     ██╗██╗███╗   ██╗    ███████╗██╗  ██╗██╗   ██╗",
-                        "██╔══██╗██╔════╝████╗  ██║     ██║██║████╗  ██║    ╚══███╔╝██║  ██║██║   ██║",
-                        "██████╔╝█████╗  ██╔██╗ ██║     ██║██║██╔██╗ ██║      ███╔╝ ███████║██║   ██║",
-                        "██╔══██╗██╔══╝  ██║╚██╗██║██   ██║██║██║╚██╗██║     ███╔╝  ██╔══██║██║   ██║",
-                        "██████╔╝███████╗██║ ╚████║╚█████╔╝██║██║ ╚████║    ███████╗██║  ██║╚██████╔╝",
-                        "╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚════╝ ╚═╝╚═╝  ╚═══╝    ╚══════╝╚═╝  ╚═╝ ╚═════╝ ",
+                        "██████╗ ███████╗███╗   ██╗     ██╗██╗███╗   ██╗   ███████╗██╗  ██╗██╗   ██╗",
+                        "██╔══██╗██╔════╝████╗  ██║     ██║██║████╗  ██║   ╚══███╔╝██║  ██║██║   ██║",
+                        "██████╔╝█████╗  ██╔██╗ ██║     ██║██║██╔██╗ ██║     ███╔╝ ███████║██║   ██║",
+                        "██╔══██╗██╔══╝  ██║╚██╗██║██   ██║██║██║╚██╗██║    ███╔╝  ██╔══██║██║   ██║",
+                        "██████╔╝███████╗██║ ╚████║╚█████╔╝██║██║ ╚████║   ███████╗██║  ██║╚██████╔╝",
+                        "╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚════╝ ╚═╝╚═╝  ╚═══╝   ╚══════╝╚═╝  ╚═╝ ╚═════╝ ",
                         "",
-                        "                  💻 Welcome to Neovim 💻                  ",
+                        "               💻 Welcome to Neovim 💻               ",
                         "",
                     },
                     shortcut = {
@@ -474,7 +493,7 @@ local plugins = {
 			keymap = {
 				preset = "default",
 				["<CR>"] = { "accept", "fallback" },
-				["<Right>"] = { "accept", "fallback" },  -- 添加右箭头键接受补全
+				["<Right>"] = { "accept", "fallback" },
 				["<Tab>"] = { "select_next", "fallback" },
 				["<S-Tab>"] = { "select_prev", "fallback" },
 				["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
@@ -587,6 +606,7 @@ local plugins = {
 				{ "<leader>b", group = "Buffer" },
 				{ "<leader>t", group = "Toggle/Terminal/Tabs" },
 				{ "<leader>d", group = "Diagnostics/Definition (LSP)" },
+                { "<leader>c", group = "Code/Comment" }, -- 添加了这个组，因为快捷键使用了 <leader>c
 			},
 		},
 		config = function(_, opts)
@@ -768,28 +788,6 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 自动显示诊断
-	autocmd("CursorHold", {
-		group = augroup("AutoShowDiagnosticsOnCursorHold", { clear = true }),
-		pattern = "*",
-		callback = function()
-			local current_buf = vim.api.nvim_get_current_buf()
-			local cursor_pos = vim.api.nvim_win_get_cursor(0)
-			local current_line_0_indexed = cursor_pos[1] - 1
-
-			local diagnostics_on_line = vim.diagnostic.get(current_buf, {
-				lnum = current_line_0_indexed,
-				severity = { min = vim.diagnostic.severity.WARN },
-			})
-
-			if #diagnostics_on_line > 0 then
-				vim.diagnostic.open_float(nil, {
-					scope = "line",
-					focusable = false,
-				})
-			end
-		end,
-	})
 end
 
 -- 诊断配置
@@ -853,18 +851,18 @@ local function setup_lsp()
 		map("<leader>dd", vim.lsp.buf.declaration, "Go to Declaration")
 
 		map("K", vim.lsp.buf.hover, "Hover Documentation")
-		map("<leader>cr", vim.lsp.buf.rename, "Rename Symbol")
+		map("<leader>cr", vim.lsp.buf.rename, "Rename Symbol") -- 注意: 这个 cr 与 Comment 的 cc, c<space> 不冲突
 		map("<C-k>", vim.lsp.buf.signature_help, "Signature Help")
 
 		vim.keymap.set(
 			{ "n", "v" },
-			"<leader>ca",
+			"<leader>ca", -- 注意: 这个 ca 与 Comment 的 cc, c<space> 不冲突
 			vim.lsp.buf.code_action,
 			{ buffer = bufnr, noremap = true, silent = true, desc = "LSP: Code Action" }
 		)
 
 		if client.supports_method("textDocument/formatting") then
-			map("<leader>cf", function()
+			map("<leader>cf", function() -- 注意: 这个 cf 与 Comment 的 cc, c<space> 不冲突
 				vim.lsp.buf.format({ async = true })
 			end, "Format (LSP)")
 		end
@@ -937,7 +935,7 @@ local function setup_breakpoint()
 
 		local breakpoint_line = breakpoint_map[filetype]
 		if breakpoint_line then
-			vim.fn.append(line, indent_str .. breakpoint_line)
+			vim.fn.append(line-1, indent_str .. breakpoint_line)
 			vim.cmd("normal! j")
 			vim.notify("断点已插入: " .. breakpoint_line, vim.log.levels.INFO)
 		else
@@ -988,7 +986,7 @@ local function setup_breakpoint()
 
 	-- 键位映射
 	vim.keymap.set("n", "<leader>bb", toggle_breakpoint, { desc = "Toggle breakpoint" })
-	vim.keymap.set("n", "<leader>cb", remove_all_breakpoints, { desc = "Remove all breakpoints" })
+	vim.keymap.set("n", "<leader>cb", remove_all_breakpoints, { desc = "Remove all breakpoints" }) -- 这个 cb 与 Comment 的 cc, c<space> 不冲突
 end
 
 -- 键位映射配置
