@@ -371,9 +371,14 @@ local plugins = {
 		end,
 	},
 
+	-- Toggle 注释插件
 	{
 		"numToStr/Comment.nvim",
 		event = { "BufReadPost", "BufNewFile" },
+		keys = {
+			{ "<C-/>", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
+			{ "<C-/>", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
+		},
 		config = function()
 			require("Comment").setup()
 		end,
@@ -456,6 +461,7 @@ local plugins = {
 			keymap = {
 				preset = "default",
 				["<CR>"] = { "accept", "fallback" },
+				["<Right>"] = { "accept", "fallback" },  -- 添加右箭头键接受补全
 				["<Tab>"] = { "select_next", "fallback" },
 				["<S-Tab>"] = { "select_prev", "fallback" },
 				["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
@@ -472,6 +478,7 @@ local plugins = {
 		},
 	},
 
+	-- 代码格式化 (关闭自动保存格式化)
 	{
 		"stevearc/conform.nvim",
 		event = "VeryLazy",
@@ -494,13 +501,22 @@ local plugins = {
 				bash = { "shfmt" },
 				sh = { "shfmt" },
 			},
-			format_on_save = {
-				timeout_ms = 700,
-				lsp_fallback = true,
-			},
+			-- 禁用自动保存格式化
+			-- format_on_save = {
+			-- 	timeout_ms = 700,
+			-- 	lsp_fallback = true,
+			-- },
 		},
 		init = function()
 			vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
+		end,
+		config = function(_, opts)
+			require("conform").setup(opts)
+
+			-- 创建 :fm 命令用于手动格式化
+			vim.api.nvim_create_user_command("Fm", function()
+				require("conform").format({ async = true, lsp_fallback = true })
+			end, { desc = "Format code" })
 		end,
 	},
 
@@ -891,6 +907,77 @@ local function setup_lsp()
 	})
 end
 
+-- Breakpoint 功能
+local function setup_breakpoint()
+	-- 插入 breakpoint 函数
+	local function insert_breakpoint()
+		local filetype = vim.bo.filetype
+		local line = vim.fn.line(".")
+		local indent = vim.fn.indent(line)
+		local indent_str = string.rep(" ", indent)
+
+		local breakpoint_map = {
+			python = "breakpoint()  # DEBUG",
+			c = "raise(SIGTRAP);  // DEBUG",
+			cpp = "raise(SIGTRAP);  // DEBUG",
+		}
+
+		local breakpoint_line = breakpoint_map[filetype]
+		if breakpoint_line then
+			vim.fn.append(line, indent_str .. breakpoint_line)
+			vim.cmd("normal! j")
+			vim.notify("断点已插入: " .. breakpoint_line, vim.log.levels.INFO)
+		else
+			vim.notify("不支持的文件类型: " .. filetype, vim.log.levels.WARN)
+		end
+	end
+
+	-- 智能切换 breakpoint
+	local function toggle_breakpoint()
+		local line = vim.api.nvim_get_current_line()
+		local filetype = vim.bo.filetype
+
+		-- 检查当前行是否包含断点
+		local has_breakpoint = false
+		if filetype == "python" and line:match("breakpoint()") then
+			has_breakpoint = true
+		elseif (filetype == "c" or filetype == "cpp") and line:match("raise%(SIGTRAP%)") then
+			has_breakpoint = true
+		end
+
+		if has_breakpoint then
+			-- 删除当前行的断点
+			vim.cmd("delete")
+			vim.notify("断点已移除", vim.log.levels.INFO)
+		else
+			-- 插入断点
+			insert_breakpoint()
+		end
+	end
+
+	-- 移除所有断点
+	local function remove_all_breakpoints()
+		local filetype = vim.bo.filetype
+		local patterns = {
+			python = "breakpoint().*DEBUG",
+			c = "raise%(SIGTRAP%).*DEBUG",
+			cpp = "raise%(SIGTRAP%).*DEBUG",
+		}
+
+		local pattern = patterns[filetype]
+		if pattern then
+			vim.cmd("g/" .. pattern .. "/d")
+			vim.notify("所有调试断点已移除", vim.log.levels.INFO)
+		else
+			vim.notify("不支持的文件类型: " .. filetype, vim.log.levels.WARN)
+		end
+	end
+
+	-- 键位映射
+	vim.keymap.set("n", "<leader>bb", toggle_breakpoint, { desc = "Toggle breakpoint" })
+	vim.keymap.set("n", "<leader>cb", remove_all_breakpoints, { desc = "Remove all breakpoints" })
+end
+
 -- 键位映射配置
 local function setup_keymaps()
 	local keymap = vim.keymap.set
@@ -995,13 +1082,6 @@ local function setup_keymaps()
 	-- 搜索结果居中
 	keymap("n", "n", "nzzzv", { desc = "Next search result (centered)" })
 	keymap("n", "N", "Nzzzv", { desc = "Previous search result (centered)" })
-
-	-- 标签页
-	keymap("n", "<leader>tn", "<cmd>tabnew<CR>", { desc = "New tab" })
-	keymap("n", "<leader>tc", "<cmd>tabclose<CR>", { desc = "Close current tab" })
-	keymap("n", "<leader>to", "<cmd>tabonly<CR>", { desc = "Close other tabs" })
-	keymap("n", "<S-PageDown>", "<cmd>tabnext<CR>", { desc = "Next tab" })
-	keymap("n", "<S-PageUp>", "<cmd>tabprevious<CR>", { desc = "Previous tab" })
 end
 
 -- 初始化所有配置
@@ -1009,4 +1089,5 @@ setup_options()
 setup_autocmds()
 setup_diagnostics()
 setup_lsp()
+setup_breakpoint()
 setup_keymaps()
