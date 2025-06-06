@@ -1,4 +1,4 @@
--- init.lua - 简化的 Neovim 配置
+-- init.lua - 精简的 Neovim 配置
 -- ====================================
 
 -- 基础设置
@@ -11,7 +11,7 @@ local disabled_plugins = {
     "gzip", "tar", "tarPlugin", "zip", "zipPlugin", "getscript", "getscriptPlugin",
     "vimball", "vimballPlugin", "2html_plugin", "logiPat", "rrhelper",
     "netrw", "netrwPlugin", "netrwSettings", "netrwFileHandlers",
-    "matchit", "matchparen", "spec" -- matchparen 被 Treesitter 或其他插件替代
+    "matchit", "matchparen", "spec"
 }
 
 for _, plugin in pairs(disabled_plugins) do
@@ -37,7 +37,7 @@ local plugins = {
         keys = {
             { "<F3>",      "<cmd>Neotree toggle<cr>" },
             { "<leader>e", "<cmd>Neotree toggle<cr>" },
-            { "-",         "<cmd>Neotree reveal<cr>" }, -- 在已打开的 neo-tree 中定位到当前文件
+            { "-",         "<cmd>Neotree reveal<cr>" },
         },
         opts = {
             close_if_last_window = true,
@@ -46,9 +46,9 @@ local plugins = {
             filesystem = {
                 follow_current_file = { enabled = true },
                 use_libuv_file_watcher = true,
-                bind_to_cwd = false, -- true 会让 neo-tree 总显示 vim 的 cwd，false 则独立
+                bind_to_cwd = false,
                 filtered_items = {
-                    visible = false, -- 显示被过滤的项目，但以不同颜色标记
+                    visible = false,
                     hide_dotfiles = false,
                     hide_gitignored = true,
                     hide_by_name = { "node_modules", "__pycache__", ".git", ".DS_Store", "thumbs.db", "venv", ".venv" },
@@ -87,8 +87,8 @@ local plugins = {
             },
             on_attach = function(bufnr)
                 local gs = package.loaded.gitsigns
-                local function map(mode, l, r, opts)
-                    opts = opts or {}
+                local function map(mode, l, r, opts_param)
+                    local opts = opts_param or {}
                     opts.buffer = bufnr
                     vim.keymap.set(mode, l, r, opts)
                 end
@@ -239,8 +239,10 @@ local plugins = {
                                 "!**/.venv/*" } or nil,
                     },
                     live_grep = {
-                        additional_args = function() return { "--hidden", "--glob", "!**/.git/*", "--glob", "!**/venv/*",
-                                "--glob", "!**/.venv/*" } end
+                        additional_args = function()
+                            return { "--hidden", "--glob", "!**/.git/*", "--glob", "!**/venv/*",
+                                "--glob", "!**/.venv/*" }
+                        end
                     },
                 },
                 extensions = {
@@ -358,12 +360,11 @@ local plugins = {
                 lua = { "stylua" },
                 c = { "clang_format" },
                 cpp = { "clang_format" },
-                javascript = { "prettier" },
-                typescript = { "prettier" },
+                python = { "black", "isort" },
+                bash = { "shfmt" },
                 json = { "prettier" },
                 yaml = { "prettier" },
                 markdown = { "prettier" },
-                python = { "black", "isort" },
             },
             format_on_save = { timeout_ms = 500, lsp_fallback = true },
         },
@@ -480,11 +481,11 @@ require("lazy").setup(plugins, {
     checker = { enabled = true, notify = false, frequency = 3600 },
     change_detection = { enabled = true, notify = false },
     install = { missing = true, colorscheme = { "gruvbox" } },
+    -- rocks = { enabled = false }, -- To silence Luarocks warnings if not needed
 })
 
 local function setup_options()
     local opt = vim.opt
-    local g = vim.g
 
     opt.encoding = 'utf-8'
     opt.fileencoding = 'utf-8'
@@ -515,7 +516,7 @@ local function setup_options()
     opt.smartcase = true
 
     opt.number = true
-    opt.relativenumber = true
+    opt.relativenumber = false
     opt.cursorline = true
     opt.signcolumn = 'yes'
     opt.wrap = false
@@ -571,15 +572,14 @@ local function setup_autocmds()
 
     autocmd("BufWritePre", {
         group = autocreatedir_group,
-        pattern = "*",                                        -- Apply to all files
-        nested = true,                                        -- Allow nested autocmds
+        pattern = "*",
+        nested = true,
         callback = function(event)
-            if event.match:match("^%w%w+://") then return end -- Ignore remote files
+            if event.match:match("^%w%w+://") then return end
             local file = vim.loop.fs_realpath(event.match) or event.match
             local dir = vim.fn.fnamemodify(file, ":p:h")
-            -- Create directory if it's a valid path and doesn't exist
             if dir ~= "" and dir ~= "." and dir ~= vim.fn.fnamemodify(file, ":h") and vim.fn.isdirectory(dir) == 0 then
-                pcall(vim.fn.mkdir, dir, "p")  -- Use pcall for safety
+                pcall(vim.fn.mkdir, dir, "p")
             end
         end,
     })
@@ -611,7 +611,6 @@ local function setup_autocmds()
 end
 setup_autocmds()
 
-
 local function setup_diagnostics()
     vim.diagnostic.config({
         virtual_text = {
@@ -622,29 +621,14 @@ local function setup_diagnostics()
                 return #message > 80 and message:sub(1, 77) .. "..." or message
             end,
         },
-        -- Define signs directly here
         signs = {
-            active = true, -- This is the default, just being explicit
+            active = true,
             text = {
-                [vim.diagnostic.severity.ERROR] = "", -- Error
-                [vim.diagnostic.severity.WARN]  = "", -- Warn
-                [vim.diagnostic.severity.INFO]  = "", -- Info
-                [vim.diagnostic.severity.HINT]  = "", -- Hint
+                [vim.diagnostic.severity.ERROR] = "",
+                [vim.diagnostic.severity.WARN]  = "",
+                [vim.diagnostic.severity.INFO]  = "",
+                [vim.diagnostic.severity.HINT]  = "",
             },
-            -- You can also define texthl and numhl if needed,
-            -- but usually, Neovim handles this well with default DiagnosticSign<Severity> highlight groups.
-            -- texthl = {
-            --     [vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
-            --     [vim.diagnostic.severity.WARN]  = "DiagnosticSignWarn",
-            --     [vim.diagnostic.severity.INFO]  = "DiagnosticSignInfo",
-            --     [vim.diagnostic.severity.HINT]  = "DiagnosticSignHint",
-            -- },
-            -- numhl = {
-            --     [vim.diagnostic.severity.ERROR] = "DiagnosticSignError",
-            --     [vim.diagnostic.severity.WARN]  = "DiagnosticSignWarn",
-            --     [vim.diagnostic.severity.INFO]  = "DiagnosticSignInfo",
-            --     [vim.diagnostic.severity.HINT]  = "DiagnosticSignHint",
-            -- },
         },
         underline = true,
         update_in_insert = false,
@@ -658,9 +642,6 @@ local function setup_diagnostics()
             wrap = true,
         },
     })
-
-    -- The old loop for vim.fn.sign_define is no longer needed
-    -- and should be removed.
 end
 setup_diagnostics()
 
@@ -680,11 +661,13 @@ local function setup_lsp()
         end
 
         map('gD', vim.lsp.buf.declaration, "Go to Declaration")
-        map('gd', vim.lsp.buf.definition, "Go to Definition")
-        map('\\d', vim.lsp.buf.definition, "Go to Definition (Leader)")
+        -- map('gd', vim.lsp.buf.definition, "Go to Definition") -- REMOVED
+        map('\\d', vim.lsp.buf.definition, "Go to Definition")            -- This is <leader>d
+        map('<leader>D', vim.lsp.buf.definition, "Go to Definition")      -- Changed to also go to definition
+        map('<leader>dt', vim.lsp.buf.type_definition, "Type Definition") -- New mapping for Type Definition
+
         map('K', vim.lsp.buf.hover, "Hover Documentation")
         map('gi', vim.lsp.buf.implementation, "Go to Implementation")
-        map('<leader>D', vim.lsp.buf.type_definition, "Type Definition")
         map('<leader>cr', vim.lsp.buf.rename, "Rename Symbol")
         map('gr', vim.lsp.buf.references, "Find References")
         map('<C-k>', vim.lsp.buf.signature_help, "Signature Help")
@@ -702,8 +685,8 @@ local function setup_lsp()
                 vim.notify("No active LSP clients for this buffer.", vim.log.levels.WARN)
                 return
             end
-            for _, c in pairs(clients) do
-                vim.notify(string.format("LSP Client: %s\nRoot: %s", c.name, c.config.root_dir or "Not found"),
+            for _, c_info in pairs(clients) do
+                vim.notify(string.format("LSP Client: %s\nRoot: %s", c_info.name, c_info.config.root_dir or "Not found"),
                     vim.log.levels.INFO)
             end
         end, "Show LSP Info")
@@ -711,11 +694,16 @@ local function setup_lsp()
 
     require('mason-lspconfig').setup({
         ensure_installed = {
-            'clangd', 'lua_ls', 'pyright', 'bashls', 'jsonls', 'yamlls',
-            'marksman', 'lemminx', 'dockerls', 'tailwindcss', 'eslint', 'tsserver',
+            'clangd',   -- C/C++
+            'pyright',  -- Python
+            'bashls',   -- Bash
+            'jsonls',   -- JSON
+            'yamlls',   -- YAML
+            'marksman', -- Markdown
+            'lua_ls',   -- Lua (for Neovim config)
         },
         handlers = {
-            function(server_name)
+            function(server_name) -- Default handler
                 require('lspconfig')[server_name].setup({
                     capabilities = get_capabilities(),
                     on_attach = on_attach,
@@ -750,20 +738,6 @@ local function setup_lsp()
                             }
                         }
                     },
-                })
-            end,
-            ["tsserver"] = function()
-                require('lspconfig').tsserver.setup({
-                    capabilities = get_capabilities(),
-                    on_attach = on_attach,
-                })
-            end,
-            ["eslint"] = function()
-                require('lspconfig').eslint.setup({
-                    capabilities = get_capabilities(),
-                    on_attach = function(client_es, bufnr_es)
-                        on_attach(client_es, bufnr_es)
-                    end,
                 })
             end,
         },
@@ -839,8 +813,12 @@ local function setup_keymaps()
             local choice = vim.fn.confirm(modified_count .. " other buffer(s) modified. Save all others?",
                 "&Yes\n&No\n&Cancel", 1, "Warning")
             if choice == 1 then
-                for _, b in ipairs(bufs) do if b ~= current_buf_nr and vim.bo[b].modified then vim.cmd(
-                        "silent! writebuf " .. b) end end
+                for _, b in ipairs(bufs) do
+                    if b ~= current_buf_nr and vim.bo[b].modified then
+                        vim.cmd(
+                            "silent! writebuf " .. b)
+                    end
+                end
             elseif choice == 3 then
                 return
             end
@@ -865,17 +843,17 @@ local function setup_keymaps()
         local breakpoint_text = "breakpoint()"
         local breakpoint_comment = "# Debug breakpoint"
         local full_breakpoint_line_pattern = "^%s*" ..
-        vim.pesc(breakpoint_text) .. "%s*" .. vim.pesc(breakpoint_comment) .. "%s*$"
+            vim.pesc(breakpoint_text) .. "%s*" .. vim.pesc(breakpoint_comment) .. "%s*$"
         local minimal_breakpoint_line_pattern = "^%s*" .. vim.pesc(breakpoint_text) .. "%s*$"
 
         local function is_breakpoint_line(line_content_str)
             return line_content_str:match(full_breakpoint_line_pattern) or
-            line_content_str:match(minimal_breakpoint_line_pattern)
+                line_content_str:match(minimal_breakpoint_line_pattern)
         end
 
         if current_line_idx > 1 then
             local line_above_content = vim.api.nvim_buf_get_lines(0, current_line_idx - 2, current_line_idx - 1, false)
-            [1]
+                [1]
             if line_above_content and is_breakpoint_line(line_above_content) then
                 vim.api.nvim_buf_set_lines(0, current_line_idx - 2, current_line_idx - 1, false, {})
                 return
