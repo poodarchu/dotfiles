@@ -5,6 +5,7 @@
 vim.g.mapleader = '\\'
 vim.g.maplocalleader = ','
 vim.g.have_nerd_font = true -- 确保你的终端和字体设置支持Nerd Font
+vim.g.breakpoint_marker_prefix = "󰛐 " -- Nerd Font: nf-md-pause_circle_outline (nf-oct-debug_breakpoint_log_unverified)
 
 -- 禁用内置插件
 local disabled_plugins = {
@@ -126,7 +127,7 @@ local plugins = {
         dependencies = { 'nvim-tree/nvim-web-devicons', 'morhetz/gruvbox' },
         opts = {
             options = { theme = 'gruvbox', globalstatus = true },
-            extensions = { 'neo-tree' }, -- fugitive removed
+            extensions = { 'neo-tree', 'mason' },
         },
     },
 
@@ -163,38 +164,30 @@ local plugins = {
 
     {
         'nvim-telescope/telescope.nvim',
-        version = false, -- Removing version = false as it's for specific use cases; can be added back if issues arise
         dependencies = {
             'nvim-lua/plenary.nvim',
             { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' },
             'nvim-telescope/telescope-ui-select.nvim',
-            -- 'nvim-telescope/telescope-file-browser.nvim', -- REMOVED
-            -- 'nvim-telescope/telescope-project.nvim', -- REMOVED
         },
         cmd = "Telescope",
         keys = function()
             local builtin = require('telescope.builtin')
-            local keys = {
+            return {
                 { "<leader>ff", builtin.find_files, desc = "Find Files" },
                 { "<leader>fg", builtin.live_grep, desc = "Live Grep" },
                 { "<leader>fw", builtin.grep_string, desc = "Grep Word" },
                 { "<leader>fb", builtin.buffers, desc = "Buffers" },
                 { "<leader>fh", builtin.help_tags, desc = "Help Tags" },
                 { "<leader>fr", builtin.oldfiles, desc = "Recent Files" },
-                -- { "<leader>fc", builtin.commands, desc = "Commands" }, -- Less common
-                -- { "<leader>fk", builtin.keymaps, desc = "Keymaps" }, -- Less common
                 { "<leader>gf", builtin.git_files, desc = "Git Files" },
                 { "<leader>gb", builtin.git_branches, desc = "Git Branches" },
-                { "<leader>gC", builtin.git_commits, desc = "Git Commits (Telescope)" }, -- Distinct from Fugitive's original gC
+                { "<leader>gC", builtin.git_commits, desc = "Git Commits (Telescope)" },
                 { "<leader>gt", builtin.git_status, desc = "Git Status (Telescope)" },
                 { "<leader>ls", builtin.lsp_document_symbols, desc = "Document Symbols" },
                 { "<leader>lS", builtin.lsp_workspace_symbols, desc = "Workspace Symbols" },
                 { "<leader>ld", builtin.diagnostics, desc = "Diagnostics (List)" },
-                -- { "<leader>fp", function() require('telescope').extensions.project.project({}) end, "Projects" }, -- REMOVED
-                -- { "<leader>fe", function() require('telescope').extensions.file_browser.file_browser({}) end, "File Browser" }, -- REMOVED
                 { "<leader>f/", builtin.current_buffer_fuzzy_find, desc = "Buffer Fuzzy Find" },
             }
-            return keys
         end,
         config = function()
             local telescope = require('telescope')
@@ -231,13 +224,11 @@ local plugins = {
                 },
                 extensions = {
                     fzf = { fuzzy = true, override_generic_sorter = true, override_file_sorter = true },
-                    -- file_browser = { theme = "ivy", hijack_netrw = false }, -- REMOVED
-                    -- project = { base_dirs = { '~/.config', }, hidden_files = true }, -- REMOVED
                     ['ui-select'] = { theme = "ivy" },
                 },
             })
 
-            for _, ext in ipairs({ 'fzf', 'ui-select' }) do -- project, file_browser removed
+            for _, ext in ipairs({ 'fzf', 'ui-select' }) do
                 pcall(telescope.load_extension, ext)
             end
         end,
@@ -260,26 +251,25 @@ local plugins = {
                 theme = 'hyper',
                 config = {
                     header = {
-                        "██████╗ ███████╗███╗   ██╗     ██╗██╗███╗   ██╗    ███████╗██╗  ██╗██╗   ██╗",
-                        "██╔══██╗██╔════╝████╗  ██║     ██║██║████╗  ██║    ╚══███╔╝██║  ██║██║   ██║",
-                        "██████╔╝█████╗  ██╔██╗ ██║     ██║██║██╔██╗ ██║      ███╔╝ ███████║██║   ██║",
-                        "██╔══██╗██╔══╝  ██║╚██╗██║██   ██║██║██║╚██╗██║     ███╔╝  ██╔══██║██║   ██║",
-                        "██████╔╝███████╗██║ ╚████║╚█████╔╝██║██║ ╚████║    ███████╗██║  ██║╚██████╔╝",
-                        "╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚════╝ ╚═╝╚═╝  ╚═══╝    ╚══════╝╚═╝  ╚═╝ ╚═════╝ ",
+                        "██████╗ ███████╗███╗    ██╗      ██╗██╗███╗   ██╗     ███████╗██╗  ██╗██╗   ██╗",
+                        "██╔══██╗██╔════╝████╗   ██║      ██║██║████╗  ██║     ╚══███╔╝██║  ██║██║   ██║",
+                        "██████╔╝█████╗  ██╔██╗ ██║      ██║██║██╔██╗ ██║       ███╔╝ ███████║██║   ██║",
+                        "██╔══██╗██╔══╝  ██║╚██╗██║██    ██║██║██║╚██╗██║      ███╔╝  ██╔══██║██║   ██║",
+                        "██████╔╝███████╗██║ ╚████║╚█████╔╝██║██║ ╚████║     ███████╗██║  ██║╚██████╔╝",
+                        "╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚════╝ ╚═╝╚═╝  ╚═══╝     ╚══════╝╚═╝  ╚═╝ ╚═════╝ ",
                         "",
-                        "                 💻 Welcome to Neovim 💻                 ",
+                        "                      💻 Welcome to Neovim 💻                      ",
                         "",
                     },
                     shortcut = {
                         { desc = '󰊳 Update Plugins', group = 'Function', action = 'Lazy update', key = 'u' },
                         { desc = ' Find Files', group = 'Identifier', action = 'Telescope find_files', key = 'f' },
                         { desc = ' Live Grep', group = 'String', action = 'Telescope live_grep', key = 'g' },
-                        -- { desc = ' Projects', group = 'Type', action = 'Telescope project', key = 'p' }, -- REMOVED
                         { desc = ' Recent Files', group = 'Constant', action = 'Telescope oldfiles', key = 'r' },
                         { desc = ' Config', group = 'Keyword', action = 'edit $MYVIMRC', key = 'c' },
                     },
                     packages = { enable = true },
-                    project = { enable = false }, -- Disabled as telescope-project is removed; re-enable if you use another project manager
+                    project = { enable = false },
                     mru = {
                         limit = 10,
                         icon = '󰋚',
@@ -292,26 +282,37 @@ local plugins = {
     },
 
     { 'neovim/nvim-lspconfig', event = { "BufReadPre", "BufNewFile" } },
-    { 'williamboman/mason.nvim', cmd = "Mason", opts = { ui = { border = "rounded" } } },
+    {
+        'williamboman/mason.nvim',
+        cmd = "Mason",
+        opts = {
+            ui = { border = "rounded" },
+            ensure_installed = {
+                -- LSPs
+                'clangd',   -- For C/C++
+                'pyright',  -- For Python
+
+                -- Formatters for conform.nvim
+                "stylua", "black", "isort", "clang-format", "prettier", "shfmt",
+            }
+        },
+    },
     'williamboman/mason-lspconfig.nvim',
-    -- 'folke/neodev.nvim', -- REMOVED
-    -- { 'j-hui/fidget.nvim', opts = {}, tag = "legacy" }, -- REMOVED
 
     {
         'saghen/blink.cmp',
         lazy = false,
-        -- dependencies = 'rafamadriz/friendly-snippets', -- REMOVED dependency
         version = 'v0.*',
         opts = {
             keymap = {
                 preset = 'default',
                 ['<CR>'] = { 'accept', 'fallback' },
-                ['<Tab>'] = { 'select_next', 'fallback' }, -- snippet_forward removed
-                ['<S-Tab>'] = { 'select_prev', 'fallback' }, -- snippet_backward removed
+                ['<Tab>'] = { 'select_next', 'fallback' },
+                ['<S-Tab>'] = { 'select_prev', 'fallback' },
                 ['<C-space>'] = { 'show', 'show_documentation', 'hide_documentation' },
             },
             appearance = { use_nvim_cmp_as_default = true, nerd_font_variant = 'mono' },
-            sources = { default = { 'lsp', 'path', 'buffer' } }, -- 'snippets' removed
+            sources = { default = { 'lsp', 'path', 'buffer' } },
             completion = {
                 accept = { auto_brackets = { enabled = true } },
                 documentation = { auto_show = true, auto_show_delay_ms = 200 },
@@ -322,14 +323,42 @@ local plugins = {
         },
     },
 
-    -- { -- stevearc/conform.nvim REMOVED
-    -- },
+    {
+        'stevearc/conform.nvim',
+        event = "VeryLazy",
+        cmd = { "ConformInfo" },
+        opts = {
+            formatters_by_ft = {
+                lua = { "stylua" },
+                python = { "isort", "black" },
+                c = { "clang-format" },
+                cpp = { "clang-format" },
+                javascript = { "prettier" },
+                typescript = { "prettier" },
+                tsx = { "prettier" },
+                html = { "prettier" },
+                css = { "prettier" },
+                scss = { "prettier" },
+                json = { "prettier" },
+                yaml = { "prettier" },
+                markdown = { "prettier" },
+                bash = { "shfmt" },
+                sh = { "shfmt" },
+            },
+            format_on_save = {
+                timeout_ms = 700,
+                lsp_fallback = true,
+            },
+        },
+        init = function()
+            vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
+        end,
+    },
 
     {
         'nvim-treesitter/nvim-treesitter',
         build = ':TSUpdate',
         event = { "BufReadPost", "BufNewFile" },
-        -- dependencies = { 'nvim-treesitter/nvim-treesitter-textobjects' }, -- REMOVED dependency
         config = function()
             require('nvim-treesitter.configs').setup({
                 ensure_installed = { "bash", "c", "cpp", "html", "javascript", "json", "lua", "markdown",
@@ -345,8 +374,6 @@ local plugins = {
                         node_decremental = "<bs>",
                     },
                 },
-                -- textobjects = { -- REMOVED
-                -- },
             })
         end,
     },
@@ -357,12 +384,12 @@ local plugins = {
         opts = {
             preset = "modern",
             spec = {
-                { "<leader>c", group = "Comment" }, -- Code Format removed
+                { "<leader>c", group = "Code/Comment/Format" },
                 { "<leader>f", group = "Find/File (Telescope)" },
                 { "<leader>g", group = "Git/Gitsigns/Telescope Git" },
                 { "<leader>h", group = "Git Hunks (Gitsigns)" },
                 { "<leader>l", group = "LSP/Lazy" }, { "<leader>q", group = "Quit/Session" },
-                { "<leader>w", group = "Windows" }, { "<leader>b", group = "Buffer" }, -- Breakpoint removed
+                { "<leader>w", group = "Windows" }, { "<leader>b", group = "Buffer/Breakpoint" }, -- Updated group
                 { "<leader>t", group = "Toggle/Terminal/Tabs" },
                 { "<leader>d", group = "Diagnostics/Definition (LSP)" },
             },
@@ -374,14 +401,14 @@ local plugins = {
                 ["<leader>c"] = {
                     c = { function() require('Comment.api').toggle.linewise.current() end, "Toggle Comment Line" },
                     b = { function() require('Comment.api').toggle.blockwise.current() end, "Toggle Comment Block" },
-                    -- f removed (format code)
+                    f = { function() require("conform").format({ async = true, lsp_fallback = true }) end, "Format Code" }
                 }
             }, { mode = "n", prefix = "" })
             wk.register({
                 ["<leader>c"] = {
                     c = { function() require('Comment.api').toggle.linewise(vim.fn.visualmode()) end, "Toggle Comment Line (Visual)" },
                     b = { function() require('Comment.api').toggle.blockwise(vim.fn.visualmode()) end, "Toggle Comment Block (Visual)" },
-                    -- f removed
+                    f = { function() require("conform").format({ lsp_fallback = true }) end, "Format Code (Visual)" }
                 }
             }, { mode = "v", prefix = "" })
         end
@@ -392,9 +419,7 @@ local plugins = {
         version = "*",
         keys = {
             { "<leader>tt", "<cmd>ToggleTerm<cr>", desc = "Toggle Terminal (Float)" },
-            { "<C-\\>",      "<cmd>ToggleTerm<cr>", desc = "Toggle Terminal (Float)" },
-            -- { "<leader>th", "<cmd>ToggleTerm direction=horizontal<cr>", desc = "Toggle Terminal (Horizontal)" }, -- Less common
-            -- { "<leader>tv", "<cmd>ToggleTerm direction=vertical<cr>",   desc = "Toggle Terminal (Vertical)" }, -- Less common
+            { "<C-\\>",     "<cmd>ToggleTerm<cr>", desc = "Toggle Terminal (Float)" },
         },
         opts = {
             direction = 'float',
@@ -442,7 +467,7 @@ local function setup_options()
         pcall(vim.fn.mkdir, undodir_path, "p")
     end
 
-    opt.updatetime = 250
+    opt.updatetime = 250 -- Faster updatetime for CursorHold
     opt.timeoutlen = 300
     opt.confirm = true
 
@@ -496,6 +521,7 @@ local function setup_autocmds()
     local autocreatedir_group = augroup("AutoCreateDir", { clear = true })
     local closeq_group = augroup("CloseWithQ", { clear = true })
     local trailing_spaces_group = augroup("AutoRemoveTrailingSpaces", { clear = true })
+    local auto_diag_popup_group = augroup("AutoShowDiagnosticsOnCursorHold", { clear = true })
 
     autocmd("TextYankPost", {
         group = yank_group,
@@ -551,6 +577,29 @@ local function setup_autocmds()
             vim.fn.setpos(".", save_cursor)
         end,
     })
+
+    -- Auto popup diagnostics on cursor hold
+    autocmd("CursorHold", {
+        group = auto_diag_popup_group,
+        pattern = "*",
+        callback = function()
+            local current_buf = vim.api.nvim_get_current_buf()
+            local cursor_pos = vim.api.nvim_win_get_cursor(0)
+            local current_line_0_indexed = cursor_pos[1] - 1
+
+            local diagnostics_on_line = vim.diagnostic.get(current_buf, {
+                lnum = current_line_0_indexed,
+                severity = { min = vim.diagnostic.severity.WARN } -- Only warnings and errors
+            })
+
+            if #diagnostics_on_line > 0 then
+                vim.diagnostic.open_float(nil, {
+                    scope = "line",    -- Show for the current line
+                    focusable = false, -- Don't make it focusable by default on auto-popup
+                })
+            end
+        end,
+    })
 end
 setup_autocmds()
 
@@ -579,7 +628,7 @@ local function setup_diagnostics()
         float = {
             border = "rounded",
             source = "always",
-            focusable = true,
+            -- focusable = true, -- Changed to false for auto-popup, can be true for manual <leader>de
             max_width = 120,
             max_height = 30,
             wrap = true,
@@ -589,12 +638,10 @@ end
 setup_diagnostics()
 
 local function setup_lsp()
-    -- require('neodev').setup() -- REMOVED
-
     local function get_capabilities()
         local capabilities = vim.lsp.protocol.make_client_capabilities()
         capabilities = require('blink.cmp').get_lsp_capabilities(capabilities)
-        capabilities.textDocument.completion.completionItem.snippetSupport = true -- blink.cmp might handle this or ignore if no snippet engine
+        capabilities.textDocument.completion.completionItem.snippetSupport = true
         return capabilities
     end
 
@@ -617,44 +664,23 @@ local function setup_lsp()
             { buffer = bufnr, noremap = true, silent = true, desc = "LSP: Code Action" })
 
         if client.supports_method("textDocument/formatting") then
-            map("<leader>clf", function() vim.lsp.buf.format { async = true } end, "Format (LSP Fallback)")
+            map("<leader>clfl", function() vim.lsp.buf.format { async = true } end, "Format (LSP Fallback ONLY)")
         end
-        -- map('<leader>dli', ..., "Show LSP Info") -- REMOVED (Less common)
     end
 
     require('mason-lspconfig').setup({
         ensure_installed = {
-            'clangd',   -- C/C++
-            'pyright',  -- Python (or pylsp if you prefer and install it)
-            'bashls',   -- Bash
-            'jsonls',   -- JSON
-            'yamlls',   -- YAML
-            'marksman', -- Markdown
-            'lua_ls',   -- Lua (for Neovim config)
+            'clangd',
+            'pyright',
         },
         handlers = {
-            function(server_name) -- Default handler
+            function(server_name) -- Default handler (will be used for clangd)
                 require('lspconfig')[server_name].setup({
                     capabilities = get_capabilities(),
                     on_attach = on_attach,
                 })
             end,
-            ["lua_ls"] = function()
-                require('lspconfig').lua_ls.setup({
-                    capabilities = get_capabilities(),
-                    on_attach = on_attach,
-                    settings = {
-                        Lua = {
-                            runtime = { version = 'LuaJIT' },
-                            diagnostics = { globals = { 'vim' }, disable = { "missing-fields" } },
-                            workspace = { checkThirdParty = false, library = vim.api.nvim_get_runtime_file("", true) },
-                            telemetry = { enable = false },
-                            completion = { callSnippet = "Replace" } -- Might not work fully without snippet engine
-                        },
-                    },
-                })
-            end,
-            ["pyright"] = function() -- If using pylsp, you'd add a similar handler for it
+            ["pyright"] = function()
                 require('lspconfig').pyright.setup({
                     capabilities = get_capabilities(),
                     on_attach = on_attach,
@@ -663,8 +689,13 @@ local function setup_lsp()
                             analysis = {
                                 typeCheckingMode = "basic",
                                 useLibraryCodeForTypes = true,
-                                autoSearchPaths = true,
-                                diagnosticMode = "workspace",
+                                autoSearchPaths = true, -- Important for resolving local imports
+                                diagnosticMode = "workspace", -- Analyzes all files in the workspace
+                                -- For import errors, ensure:
+                                -- 1. Neovim is opened from the project root.
+                                -- 2. The correct Python virtual environment is active OR
+                                --    pyright is configured to find it (e.g., via pyrightconfig.json).
+                                -- Pyright typically respects a `venv` or `.venv` directory in the project root.
                             }
                         }
                     },
@@ -674,6 +705,29 @@ local function setup_lsp()
     })
 end
 setup_lsp()
+
+local function toggle_breakpoint_prefix_above()
+    local cursor_line_1idx = vim.api.nvim_win_get_cursor(0)[1]
+    if cursor_line_1idx == 1 then
+        vim.notify("Cannot toggle breakpoint marker above the first line.", vim.log.levels.WARN)
+        return
+    end
+
+    local target_line_0idx = cursor_line_1idx - 2 -- Line directly above current cursor line
+    local line_content_arr = vim.api.nvim_buf_get_lines(0, target_line_0idx, target_line_0idx + 1, false)
+    if #line_content_arr == 0 then return end -- Should not happen for valid lines
+    local line_content = line_content_arr[1]
+    local prefix = vim.g.breakpoint_marker_prefix
+
+    if line_content:sub(1, #prefix) == prefix then
+        -- Remove prefix
+        local new_line_content = line_content:sub(#prefix + 1)
+        vim.api.nvim_buf_set_lines(0, target_line_0idx, target_line_0idx + 1, false, { new_line_content })
+    else
+        -- Add prefix
+        vim.api.nvim_buf_set_lines(0, target_line_0idx, target_line_0idx + 1, false, { prefix .. line_content })
+    end
+end
 
 local function setup_keymaps()
     local keymap = vim.keymap.set
@@ -702,13 +756,8 @@ local function setup_keymaps()
     keymap("v", ">", ">gv", { desc = "Increase indent" })
 
     keymap("n", "<leader>ll", "<cmd>Lazy<cr>", { desc = "Lazy Plugin Manager" })
-    keymap("n", "<leader>lu", "<cmd>Lazy update<cr>", { desc = "Lazy Update" })
-    -- keymap("n", "<leader>li", "<cmd>Lazy install<cr>", { desc = "Lazy Install" }) -- REMOVED
-    -- keymap("n", "<leader>lx", "<cmd>Lazy clean<cr>", { desc = "Lazy Clean" }) -- REMOVED
-    keymap("n", "<leader>lsync", "<cmd>Lazy sync<cr>", { desc = "Lazy Sync" })
-
-    -- Fugitive keymaps REMOVED
-    -- <leader>gs, <leader>gC, <leader>ga, <leader>gp, <leader>gl
+    keymap("n", "<leader>lu", "<cmd>Lazy update<cr>", { desc = "Lazy Update Plugins" })
+    keymap("n", "<leader>lsync", "<cmd>Lazy sync<cr>", { desc = "Lazy Sync Plugins" })
 
     keymap("n", "<leader>bd", function()
         local current_buf = vim.api.nvim_get_current_buf()
@@ -724,23 +773,17 @@ local function setup_keymaps()
         else
             vim.cmd("bdelete")
         end
-    end, { desc = "Delete current buffer" })
-    -- keymap("n", "<leader>bda", ...) -- REMOVED (Delete all other buffers)
+    end, { desc = "Delete current buffer (confirm if modified)" })
 
-    keymap("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" }) -- Kept <S-h>/<S-l> set
+    keymap("n", "<S-h>", "<cmd>bprevious<cr>", { desc = "Previous buffer" })
     keymap("n", "<S-l>", "<cmd>bnext<cr>", { desc = "Next buffer" })
-    -- keymap("n", "<leader>bp", "<cmd>bprevious<cr>", { desc = "Previous Buffer" }) -- REMOVED (duplicate)
-    -- keymap("n", "<leader>bn", "<cmd>bnext<cr>", { desc = "Next Buffer" }) -- REMOVED (duplicate)
 
-    -- Python breakpoint toggle keymaps REMOVED
-    -- <leader>bb, <F9>
+    keymap("n", "<leader>bb", toggle_breakpoint_prefix_above, { desc = "Toggle Breakpoint Marker Above" })
 
-    keymap("n", "<leader>de", function() vim.diagnostic.open_float(nil, { scope = "cursor", border = 'rounded' }) end,
-        { desc = "Show diagnostics at cursor" })
+    keymap("n", "<leader>de", function() vim.diagnostic.open_float(nil, { scope = "cursor", border = 'rounded', focusable = true }) end,
+        { desc = "Show diagnostics at cursor (focusable)" })
     keymap("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
     keymap("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
-    -- keymap("n", "<leader>dp", vim.diagnostic.goto_prev, { desc = "Previous diagnostic (alias)" }) -- REMOVED
-    -- keymap("n", "<leader>dn", vim.diagnostic.goto_next, { desc = "Next diagnostic (alias)" }) -- REMOVED
     keymap("n", "<leader>dq", function() vim.diagnostic.setqflist() end, { desc = "Diagnostics to Quickfix list" })
 
     keymap("t", "<esc><esc>", "<c-\\><c-n>", { desc = "Terminal: Enter Normal Mode" })
