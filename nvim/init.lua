@@ -57,7 +57,7 @@ local plugins = {
 			{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
 		},
 		opts = {
-			close_if_last_window = false,
+			close_if_last_window = true,  -- 修改1：启用自动关闭最后窗口
 			enable_git_status = true,
 			popup_border_style = "rounded",
 			window = { 
@@ -317,8 +317,12 @@ local plugins = {
         end,
 	},
 
-	-- LSP Setup (仅支持 C++ 和 Python)
-	{ "neovim/nvim-lspconfig", event = { "BufReadPre", "BufNewFile" } },
+	-- LSP Setup (仅支持 C++ 和 Python) - 优化1：延迟加载
+	{ 
+		"neovim/nvim-lspconfig", 
+		event = { "BufReadPost", "BufNewFile" },
+		ft = { "c", "cpp", "python" }
+	},
 	{
 		"williamboman/mason.nvim",
 		cmd = "Mason",
@@ -412,6 +416,7 @@ local plugins = {
 		end,
 	},
 
+	-- 优化2：改进 Treesitter 配置
 	{
 		"nvim-treesitter/nvim-treesitter",
 		build = ":TSUpdate",
@@ -429,6 +434,16 @@ local plugins = {
 				auto_install = true,
 				highlight = { enable = true, additional_vim_regex_highlighting = false },
 				indent = { enable = true },
+				-- 添加增量选择功能
+				incremental_selection = {
+					enable = true,
+					keymaps = {
+						init_selection = "<C-space>",
+						node_incremental = "<C-space>",
+						scope_incremental = false,
+						node_decremental = "<bs>",
+					},
+				},
 			})
 		end,
 	},
@@ -463,6 +478,7 @@ local plugins = {
 	},
 }
 
+-- 优化5：改进 Lazy 配置
 require("lazy").setup(plugins, {
 	ui = { border = "rounded" },
 	performance = {
@@ -473,6 +489,15 @@ require("lazy").setup(plugins, {
 	checker = { enabled = true, notify = false, frequency = 3600 },
 	change_detection = { enabled = true, notify = false },
 	install = { missing = true, colorscheme = { "gruvbox" } },
+	-- 添加内存优化选项
+	defaults = {
+		lazy = true, -- 默认懒加载所有插件
+		version = false, -- 不自动更新到最新版本（避免意外破坏）
+	},
+	dev = {
+		path = "~/projects", -- 开发插件路径
+		fallback = false,
+	},
 })
 
 -- 基础选项配置
@@ -608,28 +633,8 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 自动显示诊断 (优化版本)
-	autocmd("CursorHold", {
-		group = augroup("AutoShowDiagnosticsOnCursorHold", { clear = true }),
-		pattern = { "*.cpp", "*.cc", "*.cxx", "*.c", "*.h", "*.hpp", "*.py" },
-		callback = function()
-			local current_buf = vim.api.nvim_get_current_buf()
-			local cursor_pos = vim.api.nvim_win_get_cursor(0)
-			local current_line_0_indexed = cursor_pos[1] - 1
-
-			local diagnostics_on_line = vim.diagnostic.get(current_buf, {
-				lnum = current_line_0_indexed,
-				severity = { min = vim.diagnostic.severity.WARN },
-			})
-
-			if #diagnostics_on_line > 0 then
-				vim.diagnostic.open_float(nil, {
-					scope = "line",
-					focusable = false,
-				})
-			end
-		end,
-	})
+	-- 修改1：移除自动弹出诊断窗口的功能
+	-- 原来的 CursorHold 自动显示诊断已被移除
 
 	-- 打开文件夹时自动启动 neo-tree 并聚焦
 	autocmd("VimEnter", {
@@ -645,7 +650,7 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 从 neo-tree 打开文件时，如果是目录模式则调整布局
+	-- 修改1：优化文件打开时的布局调整，确保正确关闭 neo-tree
 	autocmd("BufEnter", {
 		group = augroup("AdjustLayoutOnFileOpen", { clear = true }),
 		callback = function()
@@ -655,12 +660,63 @@ local function setup_autocmds()
 			if is_regular_file then
 				local args = vim.fn.argv()
 				if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
-					-- 重新设置 neo-tree 为正常宽度
+					-- 确保完全关闭 neo-tree，然后重新以正常宽度打开
 					vim.schedule(function()
-						vim.cmd("Neotree close")
+						-- 强制关闭所有 neo-tree 窗口
+						for _, win in ipairs(vim.api.nvim_list_wins()) do
+							local buf = vim.api.nvim_win_get_buf(win)
+							local buf_name_check = vim.api.nvim_buf_get_name(buf)
+							if buf_name_check:match("neo%-tree") then
+								vim.api.nvim_win_close(win, false)
+							end
+						end
+						-- 重新打开 neo-tree
 						vim.cmd("Neotree show")
 					end)
 				end
+			end
+		end,
+	})
+
+	-- 修改1：添加智能退出功能，当只剩 neo-tree 时自动退出
+	autocmd("BufEnter", {
+		group = augroup("SmartQuit", { clear = true }),
+		callback = function()
+			-- 检查是否只剩下 neo-tree 窗口
+			local wins = vim.api.nvim_list_wins()
+			local normal_wins = 0
+			local neotree_wins = 0
+			
+			for _, win in ipairs(wins) do
+				local buf = vim.api.nvim_win_get_buf(win)
+				local buf_name = vim.api.nvim_buf_get_name(buf)
+				if buf_name:match("neo%-tree") then
+					neotree_wins = neotree_wins + 1
+				else
+					-- 检查是否是正常的编辑窗口
+					if vim.api.nvim_buf_get_option(buf, "buftype") == "" then
+						normal_wins = normal_wins + 1
+					end
+				end
+			end
+			
+			-- 如果只有 neo-tree 窗口和可能的其他特殊窗口，但没有正常编辑窗口
+			if normal_wins == 0 and neotree_wins > 0 then
+				-- 延迟检查，避免在启动时误触发
+				vim.defer_fn(function()
+					local current_wins = vim.api.nvim_list_wins()
+					local current_normal_wins = 0
+					for _, win in ipairs(current_wins) do
+						local buf = vim.api.nvim_win_get_buf(win)
+						local buf_name = vim.api.nvim_buf_get_name(buf)
+						if not buf_name:match("neo%-tree") and vim.api.nvim_buf_get_option(buf, "buftype") == "" then
+							current_normal_wins = current_normal_wins + 1
+						end
+					end
+					if current_normal_wins == 0 then
+						vim.cmd("qall")
+					end
+				end, 100)
 			end
 		end,
 	})
@@ -883,7 +939,7 @@ local function setup_breakpoint()
 	vim.keymap.set("n", "<leader>cb", remove_all_breakpoints, { desc = "Remove all breakpoints" })
 end
 
--- 键位映射配置 (精简版)
+-- 键位映射配置
 local function setup_keymaps()
 	local keymap = vim.keymap.set
 
@@ -933,19 +989,31 @@ local function setup_keymaps()
 		end
 	end, { desc = "Delete current buffer (confirm if modified)" })
 
-	-- 诊断
-	keymap("n", "<leader>de", function()
-		vim.diagnostic.open_float(nil, { scope = "cursor", border = "rounded", focusable = true })
-	end, { desc = "Show diagnostics at cursor" })
-	keymap("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
-	keymap("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
-
 	-- Lazy 插件管理
 	keymap("n", "<leader>ll", "<cmd>Lazy<cr>", { desc = "Lazy Plugin Manager" })
 
 	-- 搜索结果居中
 	keymap("n", "n", "nzzzv", { desc = "Next search result (centered)" })
 	keymap("n", "N", "Nzzzv", { desc = "Previous search result (centered)" })
+
+	-- 修改2：手动显示诊断信息的键位映射（全局）
+	keymap("n", "<leader>dh", function()
+		vim.diagnostic.open_float(nil, { scope = "cursor", border = "rounded", focusable = true })
+	end, { desc = "Show diagnostics at cursor" })
+	
+	keymap("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
+	keymap("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+
+	-- 只在支持的文件类型中设置额外的 LSP 相关键位映射
+	vim.api.nvim_create_autocmd("FileType", {
+		pattern = { "c", "cpp", "python" },
+		callback = function(event)
+			local opts = { buffer = event.buf, noremap = true, silent = true }
+			
+			-- 可以在这里添加其他特定于文件类型的键位映射
+			-- 诊断相关的键位映射已移至全局
+		end,
+	})
 end
 
 -- 初始化所有配置
