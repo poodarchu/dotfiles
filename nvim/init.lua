@@ -1,6 +1,3 @@
--- init.lua - 精简的 Neovim 配置
--- ====================================
-
 -- 基础设置
 vim.g.mapleader = "\\"
 vim.g.maplocalleader = ","
