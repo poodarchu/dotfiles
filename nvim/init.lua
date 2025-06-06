@@ -57,9 +57,49 @@ local plugins = {
 			{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
 		},
 		opts = {
-			close_if_last_window = true,
+			close_if_last_window = false,  -- 改为 false，避免自动关闭
 			enable_git_status = true,
-			window = { position = "left", width = 35 },
+			popup_border_style = "rounded",
+			window = { 
+				position = "left", 
+				width = function()
+					-- 检查是否有参数传入且为文件夹
+					local args = vim.fn.argv()
+					if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
+						return "100%"  -- 全屏宽度
+					else
+						return 35  -- 默认宽度
+					end
+				end,
+				mapping_options = {
+					noremap = true,
+					nowait = true,
+				},
+				mappings = {
+					["<space>"] = "none",
+					["<cr>"] = "open",
+					["o"] = "open",
+					["S"] = "open_split",
+					["s"] = "open_vsplit",
+					["t"] = "open_tabnew",
+					["C"] = "close_node",
+					["z"] = "close_all_nodes",
+					["R"] = "refresh",
+					["a"] = "add",
+					["A"] = "add_directory",
+					["d"] = "delete",
+					["r"] = "rename",
+					["y"] = "copy_to_clipboard",
+					["x"] = "cut_to_clipboard",
+					["p"] = "paste_from_clipboard",
+					["c"] = "copy",
+					["m"] = "move",
+					["q"] = "close_window",
+					["?"] = "show_help",
+					["<"] = "prev_source",
+					[">"] = "next_source",
+				},
+			},
 			filesystem = {
 				follow_current_file = { enabled = true },
 				use_libuv_file_watcher = true,
@@ -219,10 +259,12 @@ local plugins = {
 		"numToStr/Comment.nvim",
 		event = { "BufReadPost", "BufNewFile" },
 		keys = {
+			-- <leader>cc 快捷键
 			{ "<leader>cc", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
 			{ "<leader>cc", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
-			{ "<leader><C-space>", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
-			{ "<leader><C-space>", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
+			-- <leader>c<space> 快捷键
+			{ "<leader>c<space>", function() require("Comment.api").toggle.linewise.current() end, desc = "Toggle comment", mode = "n" },
+			{ "<leader>c<space>", function() require("Comment.api").toggle.linewise(vim.fn.visualmode()) end, desc = "Toggle comment", mode = "v" },
 		},
 		config = function()
 			require("Comment").setup()
@@ -233,30 +275,46 @@ local plugins = {
 		"nvimdev/dashboard-nvim",
 		event = "VimEnter",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
-		config = function()
-			require("dashboard").setup({
-				theme = "hyper",
-				config = {
-					header = {
-						"██████╗ ███████╗███╗    ██╗      ██╗██╗███╗   ██╗     ███████╗██╗  ██╗██╗   ██╗",
-						"██╔══██╗██╔════╝████╗   ██║      ██║██║████╗  ██║     ╚══███╔╝██║  ██║██║   ██║",
-						"██████╔╝█████╗  ██╔██╗ ██║      ██║██║██╔██╗ ██║       ███╔╝ ███████║██║   ██║",
-						"██╔══██╗██╔══╝  ██║╚██╗██║██    ██║██║██║╚██╗██║      ███╔╝  ██╔══██║██║   ██║",
-						"██████╔╝███████╗██║ ╚████║╚█████╔╝██║██║ ╚████║     ███████╗██║  ██║╚██████╔╝",
-						"╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚════╝ ╚═╝╚═╝  ╚═══╝     ╚══════╝╚═╝  ╚═╝ ╚═════╝ ",
-						"",
-						"                      💻 Welcome to Neovim 💻                      ",
-					},
-					shortcut = {
-						{ desc = "󰊳 Update Plugins", group = "Function", action = "Lazy update", key = "u" },
-						{ desc = " Config", group = "Keyword", action = "edit $MYVIMRC", key = "c" },
-					},
-					packages = { enable = true },
-					project = { enable = false },
-					mru = { limit = 10, icon = "󰋚", label = " Recent Files", cwd_only = false },
-				},
-			})
-		end,
+        config = function()
+            require('dashboard').setup({
+                theme = 'hyper',
+                config = {
+                    header = {
+                        "██████╗ ███████╗███╗   ██╗     ██╗██╗███╗   ██╗    ███████╗██╗  ██╗██╗   ██╗",
+                        "██╔══██╗██╔════╝████╗  ██║     ██║██║████╗  ██║    ╚══███╔╝██║  ██║██║   ██║",
+                        "██████╔╝█████╗  ██╔██╗ ██║     ██║██║██╔██╗ ██║      ███╔╝ ███████║██║   ██║",
+                        "██╔══██╗██╔══╝  ██║╚██╗██║██   ██║██║██║╚██╗██║     ███╔╝  ██╔══██║██║   ██║",
+                        "██████╔╝███████╗██║ ╚████║╚█████╔╝██║██║ ╚████║    ███████╗██║  ██║╚██████╔╝",
+                        "╚═════╝ ╚══════╝╚═╝  ╚═══╝ ╚════╝ ╚═╝╚═╝  ╚═══╝    ╚══════╝╚═╝  ╚═╝ ╚═════╝ ",
+                        "",
+                        "                  💻 Welcome to Neovim 💻                  ",
+                        "",
+                    },
+                    shortcut = {
+                        { desc = '󰊳 Update Plugins', group = 'Function', action = 'Lazy update', key = 'u' },
+                        { desc = ' Find Files', group = 'Identifier', action = 'Telescope find_files', key = 'f' },
+                        { desc = ' Live Grep', group = 'String', action = 'Telescope live_grep', key = 'g' },
+                        { desc = ' Projects', group = 'Type', action = 'Telescope project', key = 'p' },
+                        { desc = ' Recent Files', group = 'Constant', action = 'Telescope oldfiles', key = 'r' },
+                        { desc = ' Config', group = 'Keyword', action = 'edit $MYVIMRC', key = 'c' },
+                    },
+                    packages = { enable = true },
+                    project = {
+                        enable = true,
+                        limit = 8,
+                        icon = '󰏓',
+                        label = ' Recent Projects',
+                        action = 'Telescope find_files cwd='
+                    },
+                    mru = {
+                        limit = 10,
+                        icon = '󰋚',
+                        label = ' Recent Files',
+                        cwd_only = false
+                    },
+                },
+            })
+        end,
 	},
 
 	-- LSP Setup (仅支持 C++ 和 Python)
@@ -304,8 +362,8 @@ local plugins = {
 				["<S-Tab>"] = { "select_prev", "fallback" },
 				["<C-space>"] = { "show", "show_documentation", "hide_documentation" },
 			},
-			appearance = {
-				use_nvim_cmp_as_default = true,
+			appearance = { 
+				use_nvim_cmp_as_default = true, 
 				nerd_font_variant = "mono",
 			},
 			sources = { default = { "lsp", "path", "buffer" } },
@@ -313,9 +371,9 @@ local plugins = {
 				accept = { auto_brackets = { enabled = true } },
 				documentation = { auto_show = true, auto_show_delay_ms = 200 },
 				ghost_text = { enabled = true },
-				menu = {
-					border = "rounded",
-					scrolloff = 2,
+				menu = { 
+					border = "rounded", 
+					scrolloff = 2, 
 					scrollbar = true,
 					draw = {
 						columns = {
@@ -573,14 +631,51 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 打开文件夹时自动启动 neo-tree
+	-- 打开文件夹时自动启动全屏 neo-tree
 	autocmd("VimEnter", {
-		group = augroup("AutoOpenNeoTree", { clear = true }),
+		group = augroup("AutoOpenFullScreenNeoTree", { clear = true }),
 		callback = function()
 			local args = vim.fn.argv()
 			if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
+				-- 切换到目标目录
 				vim.cmd("cd " .. vim.fn.fnameescape(args[1]))
-				vim.cmd("Neotree show")
+				
+				-- 关闭当前的默认缓冲区和 dashboard
+				local current_buf = vim.api.nvim_get_current_buf()
+				vim.cmd("enew")
+				if vim.api.nvim_buf_is_valid(current_buf) then
+					vim.api.nvim_buf_delete(current_buf, { force = true })
+				end
+				
+				-- 打开全屏 neo-tree
+				vim.schedule(function()
+					vim.cmd("Neotree show")
+				end)
+			end
+		end,
+	})
+
+	-- 当从 neo-tree 打开文件时自动关闭 neo-tree (仅在全屏模式下)
+	autocmd("BufEnter", {
+		group = augroup("AutoCloseNeoTreeOnFileOpen", { clear = true }),
+		callback = function()
+			local buf_name = vim.api.nvim_buf_get_name(0)
+			local is_regular_file = buf_name ~= "" and not buf_name:match("neo%-tree") and vim.fn.filereadable(buf_name) == 1
+			
+			if is_regular_file then
+				-- 检查是否是通过文件夹参数启动的
+				local args = vim.fn.argv()
+				if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
+					-- 查找并关闭 neo-tree 窗口
+					for _, win in ipairs(vim.api.nvim_list_wins()) do
+						local buf = vim.api.nvim_win_get_buf(win)
+						local name = vim.api.nvim_buf_get_name(buf)
+						if name:match("neo%-tree") then
+							vim.api.nvim_win_close(win, false)
+							break
+						end
+					end
+				end
 			end
 		end,
 	})
@@ -716,7 +811,7 @@ end
 
 -- Breakpoint 功能 (仅 C++ 和 Python)
 local function setup_breakpoint()
-	-- 插入 breakpoint 函数
+	-- 插入 breakpoint 函数 (在当前行上方添加)
 	local function insert_breakpoint()
 		local filetype = vim.bo.filetype
 		local line = vim.fn.line(".")
@@ -731,8 +826,8 @@ local function setup_breakpoint()
 
 		local breakpoint_line = breakpoint_map[filetype]
 		if breakpoint_line then
-			vim.fn.append(line, indent_str .. breakpoint_line)
-			vim.cmd("normal! j")
+			-- 在当前行上方插入断点 (line - 1)
+			vim.fn.append(line - 1, indent_str .. breakpoint_line)
 			vim.notify("断点已插入: " .. breakpoint_line, vim.log.levels.INFO)
 		else
 			vim.notify("不支持的文件类型: " .. filetype, vim.log.levels.WARN)
@@ -757,6 +852,24 @@ local function setup_breakpoint()
 			vim.cmd("delete")
 			vim.notify("断点已移除", vim.log.levels.INFO)
 		else
+			-- 检查上一行是否是断点
+			local current_line_num = vim.fn.line(".")
+			if current_line_num > 1 then
+				local prev_line = vim.fn.getline(current_line_num - 1)
+				local prev_has_breakpoint = false
+				if filetype == "python" and prev_line:match("breakpoint()") then
+					prev_has_breakpoint = true
+				elseif (filetype == "c" or filetype == "cpp") and prev_line:match("raise%(SIGTRAP%)") then
+					prev_has_breakpoint = true
+				end
+
+				if prev_has_breakpoint then
+					-- 删除上一行的断点
+					vim.cmd((current_line_num - 1) .. "delete")
+					vim.notify("断点已移除", vim.log.levels.INFO)
+					return
+				end
+			end
 			-- 插入断点
 			insert_breakpoint()
 		end
