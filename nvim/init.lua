@@ -57,7 +57,7 @@ local plugins = {
 			{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle NeoTree" },
 		},
 		opts = {
-			close_if_last_window = false,  -- 改为 false，避免自动关闭
+			close_if_last_window = false,
 			enable_git_status = true,
 			popup_border_style = "rounded",
 			window = { 
@@ -66,7 +66,7 @@ local plugins = {
 					-- 检查是否有参数传入且为文件夹
 					local args = vim.fn.argv()
 					if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
-						return "100%"  -- 全屏宽度
+						return vim.o.columns  -- 使用完整屏幕宽度
 					else
 						return 35  -- 默认宽度
 					end
@@ -631,50 +631,35 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- 打开文件夹时自动启动全屏 neo-tree
+	-- 打开文件夹时自动启动 neo-tree 并聚焦
 	autocmd("VimEnter", {
-		group = augroup("AutoOpenFullScreenNeoTree", { clear = true }),
+		group = augroup("AutoOpenNeoTree", { clear = true }),
 		callback = function()
 			local args = vim.fn.argv()
 			if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
-				-- 切换到目标目录
 				vim.cmd("cd " .. vim.fn.fnameescape(args[1]))
-				
-				-- 关闭当前的默认缓冲区和 dashboard
-				local current_buf = vim.api.nvim_get_current_buf()
-				vim.cmd("enew")
-				if vim.api.nvim_buf_is_valid(current_buf) then
-					vim.api.nvim_buf_delete(current_buf, { force = true })
-				end
-				
-				-- 打开全屏 neo-tree
 				vim.schedule(function()
-					vim.cmd("Neotree show")
+					vim.cmd("Neotree focus")  -- focus 命令会自动 show 并聚焦
 				end)
 			end
 		end,
 	})
 
-	-- 当从 neo-tree 打开文件时自动关闭 neo-tree (仅在全屏模式下)
+	-- 从 neo-tree 打开文件时，如果是目录模式则调整布局
 	autocmd("BufEnter", {
-		group = augroup("AutoCloseNeoTreeOnFileOpen", { clear = true }),
+		group = augroup("AdjustLayoutOnFileOpen", { clear = true }),
 		callback = function()
 			local buf_name = vim.api.nvim_buf_get_name(0)
 			local is_regular_file = buf_name ~= "" and not buf_name:match("neo%-tree") and vim.fn.filereadable(buf_name) == 1
 			
 			if is_regular_file then
-				-- 检查是否是通过文件夹参数启动的
 				local args = vim.fn.argv()
 				if #args == 1 and vim.fn.isdirectory(args[1]) == 1 then
-					-- 查找并关闭 neo-tree 窗口
-					for _, win in ipairs(vim.api.nvim_list_wins()) do
-						local buf = vim.api.nvim_win_get_buf(win)
-						local name = vim.api.nvim_buf_get_name(buf)
-						if name:match("neo%-tree") then
-							vim.api.nvim_win_close(win, false)
-							break
-						end
-					end
+					-- 重新设置 neo-tree 为正常宽度
+					vim.schedule(function()
+						vim.cmd("Neotree close")
+						vim.cmd("Neotree show")
+					end)
 				end
 			end
 		end,
