@@ -64,7 +64,7 @@ local plugins = {
 			filesystem = {
 				follow_current_file = { enabled = true },
 				use_libuv_file_watcher = true,
-				bind_to_cwd = true, -- This is correct
+				bind_to_cwd = true,
 				filtered_items = {
 					visible = false,
 					hide_dotfiles = false,
@@ -763,7 +763,9 @@ local function setup_autocmds()
 	-- Q 关闭特殊窗口
 	autocmd("FileType", {
 		group = augroup("CloseWithQ", { clear = true }),
-		pattern = { "help", "lspinfo", "man", "notify", "qf", "query", "checkhealth", "mason", "lazy" },
+		-- BEGIN: MODIFICATION - Added "neo-tree" to the list
+		pattern = { "help", "lspinfo", "man", "notify", "qf", "query", "checkhealth", "mason", "lazy", "neo-tree" },
+		-- END: MODIFICATION
 		callback = function(event)
 			vim.bo[event.buf].buflisted = false
 			vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = event.buf, silent = true })
@@ -788,16 +790,14 @@ local function setup_autocmds()
 		end,
 	})
 
-	-- BEGIN: MODIFICATION - Corrected startup behavior
+	-- BEGIN: MODIFICATION - Corrected startup behavior to close the extra window
 	autocmd("VimEnter", {
 		group = augroup("CustomStartup", { clear = true }),
 		callback = function()
-			-- Get the first command-line argument
 			local first_arg = vim.fn.argv(0)
 
-			-- Case 1: nvim is started without arguments (e.g., `nvim`)
+			-- Case 1: nvim is started without arguments
 			if first_arg == nil then
-				-- Defer this to ensure dashboard has time to load first
 				vim.defer_fn(function()
 					if #vim.api.nvim_list_wins() == 1 and vim.bo.filetype == "dashboard" then
 						vim.cmd.Neotree()
@@ -805,12 +805,13 @@ local function setup_autocmds()
 					end
 				end, 10)
 
-			-- Case 2: nvim is started with a single directory argument (e.g., `nvim .` or `nvim ./libs`)
+			-- Case 2: nvim is started with a single directory argument
 			elseif vim.fn.isdirectory(first_arg) == 1 then
-				-- Manually change the current working directory, since netrw is disabled
 				vim.cmd.cd(first_arg)
-				-- Open neo-tree, which will now use the new correct CWD
 				vim.cmd.Neotree()
+				-- Close the now-unneeded empty buffer window
+				vim.cmd.wincmd("p") -- Switch to the previous (empty) window
+				vim.cmd.close()   -- Close it
 			end
 		end,
 		desc = "Custom startup with dashboard and neo-tree",
