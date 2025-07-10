@@ -64,7 +64,7 @@ local plugins = {
 			filesystem = {
 				follow_current_file = { enabled = true },
 				use_libuv_file_watcher = true,
-				bind_to_cwd = false,
+				bind_to_cwd = true, -- This is correct
 				filtered_items = {
 					visible = false,
 					hide_dotfiles = false,
@@ -787,6 +787,35 @@ local function setup_autocmds()
 			vim.fn.setpos(".", save_cursor)
 		end,
 	})
+
+	-- BEGIN: MODIFICATION - Corrected startup behavior
+	autocmd("VimEnter", {
+		group = augroup("CustomStartup", { clear = true }),
+		callback = function()
+			-- Get the first command-line argument
+			local first_arg = vim.fn.argv(0)
+
+			-- Case 1: nvim is started without arguments (e.g., `nvim`)
+			if first_arg == nil then
+				-- Defer this to ensure dashboard has time to load first
+				vim.defer_fn(function()
+					if #vim.api.nvim_list_wins() == 1 and vim.bo.filetype == "dashboard" then
+						vim.cmd.Neotree()
+						vim.cmd.wincmd("p")
+					end
+				end, 10)
+
+			-- Case 2: nvim is started with a single directory argument (e.g., `nvim .` or `nvim ./libs`)
+			elseif vim.fn.isdirectory(first_arg) == 1 then
+				-- Manually change the current working directory, since netrw is disabled
+				vim.cmd.cd(first_arg)
+				-- Open neo-tree, which will now use the new correct CWD
+				vim.cmd.Neotree()
+			end
+		end,
+		desc = "Custom startup with dashboard and neo-tree",
+	})
+	-- END: MODIFICATION
 
 end
 
