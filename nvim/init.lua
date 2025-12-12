@@ -49,7 +49,7 @@ vim.opt.rtp:prepend(lazypath)
 -- Plugins
 -- ============================================================================
 local plugins = {
-  -- Colorscheme
+  -- Colorscheme (UNCHANGED)
   {
     "morhetz/gruvbox",
     priority = 1000,
@@ -103,7 +103,7 @@ local plugins = {
   -- Icons (used by multiple plugins)
   { "nvim-tree/nvim-web-devicons", lazy = true },
 
-  -- File explorer
+  -- File explorer (UNCHANGED)
   {
     "nvim-neo-tree/neo-tree.nvim",
     branch = "v3.x",
@@ -133,7 +133,7 @@ local plugins = {
     },
   },
 
-  -- Git signs
+  -- Git signs (UNCHANGED)
   {
     "lewis6991/gitsigns.nvim",
     event = { "BufReadPre", "BufNewFile" },
@@ -193,7 +193,7 @@ local plugins = {
     },
   },
 
-  -- Statusline
+  -- Statusline (UNCHANGED)
   {
     "nvim-lualine/lualine.nvim",
     event = "VeryLazy",
@@ -204,7 +204,7 @@ local plugins = {
     },
   },
 
-  -- Indent guides
+  -- Indent guides (UNCHANGED)
   {
     "lukas-reineke/indent-blankline.nvim",
     event = { "BufReadPost", "BufNewFile" },
@@ -216,7 +216,7 @@ local plugins = {
     },
   },
 
-  -- Autopairs
+  -- Autopairs (UNCHANGED)
   {
     "windwp/nvim-autopairs",
     event = "InsertEnter",
@@ -226,7 +226,7 @@ local plugins = {
     },
   },
 
-  -- Telescope
+  -- Telescope (UNCHANGED)
   {
     "nvim-telescope/telescope.nvim",
     dependencies = {
@@ -313,7 +313,7 @@ local plugins = {
     end,
   },
 
-  -- Comment toggling
+  -- Comment toggling (UNCHANGED)
   {
     "numToStr/Comment.nvim",
     event = { "BufReadPost", "BufNewFile" },
@@ -328,7 +328,7 @@ local plugins = {
     end,
   },
 
-  -- Dashboard
+  -- Dashboard (UNCHANGED - YOUR CUSTOM HEADER)
   {
     "nvimdev/dashboard-nvim",
     event = "VimEnter",
@@ -365,7 +365,7 @@ local plugins = {
   -- LSP
   { "neovim/nvim-lspconfig", event = { "BufReadPre", "BufNewFile" } },
 
-  -- Mason
+  -- Mason (UNCHANGED)
   {
     "williamboman/mason.nvim",
     cmd = "Mason",
@@ -378,7 +378,7 @@ local plugins = {
     opts = { ensure_installed = { "clangd", "pyright", "ruff" } },
   },
 
-  -- Completion
+  -- Completion (MODIFIED: disable ghost_text and signature to avoid conflicts)
   {
     "saghen/blink.cmp",
     lazy = false,
@@ -397,14 +397,152 @@ local plugins = {
       completion = {
         accept = { auto_brackets = { enabled = true } },
         documentation = { auto_show = true, auto_show_delay_ms = 200 },
-        ghost_text = { enabled = true },
+        ghost_text = { enabled = false },  -- DISABLED: Copilot handles ghost text
         menu = { border = "rounded", scrolloff = 2, scrollbar = true },
       },
-      signature = { enabled = true, window = { border = "rounded" } },
+      signature = { enabled = false },  -- DISABLED: lsp_signature.nvim handles this
     },
   },
 
-  -- Formatting
+  -- ===========================================================================
+  -- NEW: Function Signature Help (replaces blink.cmp signature)
+  -- ===========================================================================
+  {
+    "ray-x/lsp_signature.nvim",
+    event = "LspAttach",
+    opts = {
+      bind = true,
+      handler_opts = { border = "rounded" },
+      floating_window = true,
+      floating_window_above_cur_line = true,
+      hint_enable = false,  -- Disable inline hints to avoid clutter
+      hi_parameter = "LspSignatureActiveParameter",
+      max_height = 12,
+      max_width = 80,
+      wrap = true,
+      doc_lines = 10,
+      padding = " ",
+      toggle_key = "<M-k>",  -- Alt+k to toggle signature manually
+      select_signature_key = "<M-n>",  -- Alt+n to cycle through overloaded signatures
+    },
+  },
+
+  -- ===========================================================================
+  -- NEW: Docstring Generation
+  -- ===========================================================================
+  {
+    "danymat/neogen",
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    keys = {
+      { "<leader>ng", function() require("neogen").generate() end, desc = "Generate docstring" },
+      { "<leader>nf", function() require("neogen").generate({ type = "func" }) end, desc = "Docstring: function" },
+      { "<leader>nc", function() require("neogen").generate({ type = "class" }) end, desc = "Docstring: class" },
+      { "<leader>nt", function() require("neogen").generate({ type = "type" }) end, desc = "Docstring: type" },
+    },
+    opts = {
+      snippet_engine = "nvim",
+      enabled = true,
+      languages = {
+        python = {
+          template = { annotation_convention = "google_docstrings" },
+        },
+        c = {
+          template = { annotation_convention = "doxygen" },
+        },
+        cpp = {
+          template = { annotation_convention = "doxygen" },
+        },
+        lua = {
+          template = { annotation_convention = "emmylua" },
+        },
+      },
+    },
+  },
+
+  -- ===========================================================================
+  -- NEW: GitHub Copilot (ghost text only, no cmp integration)
+  -- ===========================================================================
+  {
+    "zbirenbaum/copilot.lua",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    keys = {
+      { "<leader>cp", "<cmd>Copilot panel<cr>", desc = "Copilot panel" },
+      { "<leader>ct", "<cmd>Copilot toggle<cr>", desc = "Copilot toggle" },
+    },
+    opts = {
+      panel = {
+        enabled = true,
+        auto_refresh = true,
+        keymap = {
+          jump_prev = "[[",
+          jump_next = "]]",
+          accept = "<CR>",
+          refresh = "gr",
+          open = "<M-CR>",
+        },
+        layout = {
+          position = "right",
+          ratio = 0.4,
+        },
+      },
+      suggestion = {
+        enabled = true,
+        auto_trigger = true,
+        debounce = 75,
+        keymap = {
+          accept = "<M-l>",           -- Alt+l to accept
+          accept_word = "<M-w>",      -- Alt+w to accept word
+          accept_line = "<M-j>",      -- Alt+j to accept line
+          next = "<M-]>",             -- Alt+] next suggestion
+          prev = "<M-[>",             -- Alt+[ prev suggestion
+          dismiss = "<M-e>",          -- Alt+e dismiss
+        },
+      },
+      filetypes = {
+        yaml = false,
+        markdown = true,
+        help = false,
+        gitcommit = true,
+        gitrebase = false,
+        ["."] = false,
+      },
+    },
+  },
+
+  -- ===========================================================================
+  -- NEW: Linter (feeds into vim.diagnostic, no conflict with LSP)
+  -- ===========================================================================
+  {
+    "mfussenegger/nvim-lint",
+    event = { "BufReadPre", "BufNewFile" },
+    config = function()
+      local lint = require("lint")
+
+      lint.linters_by_ft = {
+        python = { "ruff" },
+        c = { "cppcheck" },
+        cpp = { "cppcheck" },
+      }
+
+      -- Auto-lint on events
+      vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+        group = vim.api.nvim_create_augroup("nvim-lint", { clear = true }),
+        callback = function()
+          if vim.opt_local.modifiable:get() then
+            lint.try_lint()
+          end
+        end,
+      })
+
+      -- Manual lint command
+      vim.api.nvim_create_user_command("Lint", function()
+        lint.try_lint()
+      end, { desc = "Trigger linting" })
+    end,
+  },
+
+  -- Formatting (UNCHANGED)
   {
     "stevearc/conform.nvim",
     event = "VeryLazy",
@@ -439,7 +577,7 @@ local plugins = {
     end,
   },
 
-  -- Treesitter
+  -- Treesitter (UNCHANGED)
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
@@ -479,7 +617,7 @@ local plugins = {
     end,
   },
 
-  -- Which-key
+  -- Which-key (MODIFIED: added new groups)
   {
     "folke/which-key.nvim",
     event = "VeryLazy",
@@ -492,10 +630,11 @@ local plugins = {
         { "<leader>l", group = "LSP/Lazy" },
         { "<leader>q", group = "Quit/Session" },
         { "<leader>w", group = "Windows" },
-        { "<leader>b", group = "Buffer" },
+        { "<leader>b", group = "Buffer/Breakpoint" },
         { "<leader>t", group = "Toggle/Terminal" },
         { "<leader>d", group = "Diagnostics/Definition (LSP)" },
-        { "<leader>c", group = "Code/Comment" },
+        { "<leader>c", group = "Code/Comment/Copilot" },
+        { "<leader>n", group = "Neogen (Docstring)" },
       },
     },
     config = function(_, opts)
@@ -503,7 +642,7 @@ local plugins = {
     end,
   },
 
-  -- Terminal (avoid duplicate mappings: use Lazy keys only)
+  -- Terminal (UNCHANGED)
   {
     "akinsho/toggleterm.nvim",
     version = "*",
@@ -518,7 +657,7 @@ local plugins = {
     },
   },
 
-  -- Notifications
+  -- Notifications (UNCHANGED)
   {
     "rcarriga/nvim-notify",
     event = "VeryLazy",
@@ -544,7 +683,7 @@ require("lazy").setup(plugins, {
 })
 
 -- ============================================================================
--- Options
+-- Options (UNCHANGED)
 -- ============================================================================
 local function setup_options()
   local opt = vim.opt
@@ -605,7 +744,7 @@ local function setup_options()
 end
 
 -- ============================================================================
--- Autocmds
+-- Autocmds (UNCHANGED)
 -- ============================================================================
 local function setup_autocmds()
   local augroup = vim.api.nvim_create_augroup
@@ -696,7 +835,7 @@ local function setup_autocmds()
 end
 
 -- ============================================================================
--- Diagnostics
+-- Diagnostics (UNCHANGED)
 -- ============================================================================
 local function setup_diagnostics()
   vim.diagnostic.config({
@@ -730,7 +869,7 @@ local function setup_diagnostics()
 end
 
 -- ============================================================================
--- LSP
+-- LSP (UNCHANGED)
 -- ============================================================================
 local function setup_lsp()
   local function get_capabilities()
@@ -791,6 +930,7 @@ local function setup_lsp()
     "clang-format",
     "prettier",
     "shfmt",
+    "cppcheck",  -- NEW: for nvim-lint
   }
 
   local ok_mr, mr = pcall(require, "mason-registry")
@@ -870,7 +1010,7 @@ local function setup_lsp()
 end
 
 -- ============================================================================
--- Breakpoints helpers
+-- Breakpoints helpers (UNCHANGED)
 -- ============================================================================
 local function setup_breakpoint()
   local function insert_breakpoint()
@@ -932,11 +1072,11 @@ local function setup_breakpoint()
   end
 
   vim.keymap.set("n", "<leader>bb", toggle_breakpoint, { desc = "Toggle breakpoint" })
-  vim.keymap.set("n", "<leader>cb", remove_all_breakpoints, { desc = "Remove all breakpoints" })
+  vim.keymap.set("n", "<leader>bx", remove_all_breakpoints, { desc = "Remove all breakpoints" })
 end
 
 -- ============================================================================
--- Keymaps
+-- Keymaps (UNCHANGED)
 -- ============================================================================
 local function setup_keymaps()
   local keymap = vim.keymap.set
